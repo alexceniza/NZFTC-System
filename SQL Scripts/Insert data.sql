@@ -70,7 +70,7 @@ INSERT INTO leave_requests
 VALUES
 (1, 'Annual Leave', '2026-04-10', '2026-04-12', 'Vacation', 'Pending'),
 (2, 'Sick Leave', '2026-03-20', '2026-03-22', 'Flu', 'Approved'),
-(5, 'Annual Leave', '2026-05-01', '2026-05-05', 'Family event', 'Declined');
+(3, 'Annual Leave', '2026-05-01', '2026-05-05', 'Family event', 'Declined');
 
 
 -- =========================
