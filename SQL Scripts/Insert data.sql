@@ -81,6 +81,8 @@ INSERT INTO payroll_records
 VALUES
 (1, 6500.00, 0.20, 200.00, 5000.00, '2026-03-31'),
 (2, 6000.00, 0.18, 150.00, 4750.00, '2026-03-31'),
+(3, 7000.00, 0.18, 150.00, 4000.00, '2026-03-31'),
+(4, 8000.00, 0.18, 150.00, 8000.00, '2026-03-31'),
 (5, 5500.00, 0.18, 150.00, 4400.00, '2026-03-31'),
 (6, 5000.00, 0.15, 100.00, 4150.00, '2026-03-31'),
 (7, 4800.00, 0.15, 120.00, 3960.00, '2026-03-31'),
@@ -95,4 +97,4 @@ INSERT INTO cases
 VALUES
 (1, 'Grievance', 'Workload Issue', 'Too much workload assigned', 'Open', '2026-03-15'),
 (2, 'Complaint', 'System Bug', 'Portal is slow', 'In Progress', '2026-03-18'),
-(5, 'Resignation', 'Leaving Company', 'Relocating overseas', 'Closed', '2026-02-10');
+(3, 'Resignation', 'Leaving Company', 'Relocating overseas', 'Closed', '2026-02-10');
