@@ -34,7 +34,7 @@ namespace NZFTC_Portal.Controllers
                 return View();
             }
 
-            // Route based on role FROM DATABASE (not form)
+            // Route based on role FROM DATABASE
             if (user.Role == "Admin" || user.Role == "Administrator")
             {
                 return RedirectToAction("Dashboard", "Admin");
