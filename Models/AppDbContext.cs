@@ -18,7 +18,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Admin> Admins { get; set; }
 
-    public virtual DbSet<CasesTbl> CasesTbls { get; set; }
+    public virtual DbSet<Cases> CasesTbls { get; set; }
 
     public virtual DbSet<Employee> Employees { get; set; }
 
@@ -34,7 +34,7 @@ public partial class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseMySql("server=127.0.0.1;port=3306;database=employee_management_system;user=nzftc_user;password=NZFTC123!", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.45-mysql"));
+        => optionsBuilder.UseMySql("server=127.0.0.1;port=3306;database=employee_management_system;user=root;password=SD106-2", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.45-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,7 +62,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fk_admin_user");
         });
 
-        modelBuilder.Entity<CasesTbl>(entity =>
+        modelBuilder.Entity<Cases>(entity =>
         {
             entity.HasKey(e => e.CaseId).HasName("PRIMARY");
 
@@ -158,9 +158,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(30)
                 .HasColumnName("phone_number");
-            entity.Property(e => e.TrainingRecords)
+            entity.Property(e => e.TrainingRecord)
                 .HasColumnType("text")
-                .HasColumnName("training_records");
+                .HasColumnName("training_record");
 
             entity.HasOne(d => d.Employee).WithOne(p => p.EmployeeRecord)
                 .HasForeignKey<EmployeeRecord>(d => d.EmployeeId)

@@ -9,7 +9,7 @@ public partial class Admin
 
     public string AdminCode { get; set; } = null!;
 
-    public virtual ICollection<CasesTbl> CasesTbls { get; set; } = new List<CasesTbl>();
+    public virtual ICollection<Cases> CasesTbls { get; set; } = new List<Cases>();
 
     public virtual ICollection<LeaveRequest> LeaveRequests { get; set; } = new List<LeaveRequest>();
 

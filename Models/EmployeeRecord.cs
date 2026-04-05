@@ -19,7 +19,7 @@ public partial class EmployeeRecord
 
     public string? PerformanceEvaluation { get; set; }
 
-    public string? TrainingRecords { get; set; }
+    public string? TrainingRecord { get; set; }
 
     public virtual Employee Employee { get; set; } = null!;
 }

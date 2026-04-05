@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace NZFTC_Portal.Models;
 
-public partial class CasesTbl
+public partial class Cases
 {
     public int CaseId { get; set; }
 
