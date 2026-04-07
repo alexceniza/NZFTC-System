@@ -43,6 +43,8 @@ builder.Services.AddSession(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IHolidayService, HolidayService>();
+// Registers backend services used during Sprint 2 integration.
+builder.Services.AddScoped<ILeaveService, LeaveService>();
 
 var app = builder.Build();
 
