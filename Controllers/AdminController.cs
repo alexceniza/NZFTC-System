@@ -1,9 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NZFTC_Portal.Models;
 
 namespace NZFTC_Portal.Controllers
 {
     public class AdminController : Controller
     {
+        private readonly AppDbContext _context;
+
+        public AdminController(AppDbContext context)
+        {
+            _context = context;
+        }
+
         // Check if user is admin
         private bool IsAdmin()
         {
@@ -60,6 +68,40 @@ namespace NZFTC_Portal.Controllers
                 return RedirectToAction("Login", "Account");
 
             SetAdminViewData("Employees");
+
+            // Loads employee and user rows first, then shapes them for the table in memory.
+            var employeeDirectory = _context.Employees
+                .Join(
+                    _context.Users,
+                    employee => employee.UserId,
+                    user => user.UserId,
+                    (employee, user) => new
+                    {
+                        employee.EmployeeCode,
+                        user.FullName,
+                        user.Email,
+                        employee.Department,
+                        employee.Position,
+                        employee.JoinDate,
+                        employee.EmploymentStatus
+                    })
+                .OrderBy(row => row.EmployeeCode)
+                .AsEnumerable()
+                .Select(row => new[]
+                {
+            row.EmployeeCode,
+            row.FullName,
+            row.Email,
+            row.Department,
+            row.Position,
+            row.JoinDate.ToString("dd/MM/yyyy"),
+            row.EmploymentStatus
+                })
+                .ToArray();
+
+            // Sends the employee directory rows to the Employees.cshtml table.
+            ViewData["EmployeeDirectory"] = employeeDirectory;
+
             return View();
         }
 

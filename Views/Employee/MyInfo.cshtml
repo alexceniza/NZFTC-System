@@ -226,6 +226,11 @@
                     return;
                 }
 
+                // Confirms the save before submitting the chosen field.
+                if (!confirm("Save this change?")) {
+                    return;
+                }
+
                 // Saves the chosen field back through the controller stump.
                 updateField.value = targetId;
                 profileUpdateForm.submit();

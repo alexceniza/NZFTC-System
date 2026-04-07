@@ -66,7 +66,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.CaseId).HasName("PRIMARY");
 
-            entity.ToTable("cases_tbl");
+            entity.ToTable("cases");
 
             entity.HasIndex(e => e.AdminId, "idx_case_admin");
 
@@ -160,7 +160,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("phone_number");
             entity.Property(e => e.TrainingRecord)
                 .HasColumnType("text")
-                .HasColumnName("training_record");
+                .HasColumnName("training_records");
 
             entity.HasOne(d => d.Employee).WithOne(p => p.EmployeeRecord)
                 .HasForeignKey<EmployeeRecord>(d => d.EmployeeId)

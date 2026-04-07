@@ -1,6 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Employee Management";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    // Loads the employee directory rows passed from the admin controller.
+    var employeeDirectory = ViewData["EmployeeDirectory"] as string[][] ?? Array.Empty<string[]>();
 }
 
 @section Styles {
@@ -46,34 +49,53 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>EMP---</td>
-                        <td>Employee Name</td>
-                        <td>employee@nzftc.co.nz</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="employee-status-badge active-status">Active</span>
-                        </td>
-                        <td>
-                            <button type="button" class="view-button">View</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>EMP---</td>
-                        <td>Employee Name</td>
-                        <td>employee@nzftc.co.nz</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="employee-status-badge leave-status">On Leave</span>
-                        </td>
-                        <td>
-                            <button type="button" class="view-button">View</button>
-                        </td>
-                    </tr>
+                    @if (employeeDirectory.Length == 0)
+                    {
+                        <!-- Empty state row -->
+                        <tr>
+                            <td colspan="8">No employee records found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <!-- Employee directory rows -->
+                        @foreach (var employee in employeeDirectory)
+                        {
+                            var employeeId = employee[0];
+                            var employeeName = employee[1];
+                            var employeeEmail = employee[2];
+                            var employeeDepartment = employee[3];
+                            var employeePosition = employee[4];
+                            var employeeJoinDate = employee[5];
+                            var employeeStatus = employee[6];
+                            var statusClass = employeeStatus == "Active" ? "active-status" : "leave-status";
+
+                            <tr>
+                                <td>@employeeId</td>
+                                <td>@employeeName</td>
+                                <td>@employeeEmail</td>
+                                <td>@employeeDepartment</td>
+                                <td>@employeePosition</td>
+                                <td>@employeeJoinDate</td>
+                                <td>
+                                    <span class="employee-status-badge @statusClass">@employeeStatus</span>
+                                </td>
+                                <td>
+                                    <button type="button"
+                                            class="view-button open-view-employee-modal"
+                                            data-employee-id="@employeeId"
+                                            data-employee-name="@employeeName"
+                                            data-employee-email="@employeeEmail"
+                                            data-employee-department="@employeeDepartment"
+                                            data-employee-position="@employeePosition"
+                                            data-employee-join-date="@employeeJoinDate"
+                                            data-employee-status="@employeeStatus">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -169,6 +191,68 @@
     </div>
 </div>
 
+<!-- View employee modal -->
+<div class="employee-modal-overlay" id="viewEmployeeModal">
+    <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="viewEmployeeModalTitle">
+        <!-- Modal close -->
+        <button type="button" class="employee-modal-close" id="closeViewEmployeeModal" aria-label="Close employee details modal">
+            x
+        </button>
+
+        <!-- Modal heading -->
+        <div class="employee-modal-header">
+            <h2 id="viewEmployeeModalTitle">Employee Details</h2>
+            <p>View selected employee information</p>
+        </div>
+
+        <!-- Read-only employee information -->
+        <div class="employee-modal-form">
+            <div class="employee-form-row">
+                <div class="employee-form-group">
+                    <label for="viewEmployeeId">Employee ID</label>
+                    <input type="text" id="viewEmployeeId" readonly />
+                </div>
+
+                <div class="employee-form-group">
+                    <label for="viewEmployeeStatus">Status</label>
+                    <input type="text" id="viewEmployeeStatus" readonly />
+                </div>
+            </div>
+
+            <div class="employee-form-group">
+                <label for="viewEmployeeName">Full Name</label>
+                <input type="text" id="viewEmployeeName" readonly />
+            </div>
+
+            <div class="employee-form-group">
+                <label for="viewEmployeeEmail">Email</label>
+                <input type="text" id="viewEmployeeEmail" readonly />
+            </div>
+
+            <div class="employee-form-row">
+                <div class="employee-form-group">
+                    <label for="viewEmployeeDepartment">Department</label>
+                    <input type="text" id="viewEmployeeDepartment" readonly />
+                </div>
+
+                <div class="employee-form-group">
+                    <label for="viewEmployeePosition">Position</label>
+                    <input type="text" id="viewEmployeePosition" readonly />
+                </div>
+            </div>
+
+            <div class="employee-form-group">
+                <label for="viewEmployeeJoinDate">Join Date</label>
+                <input type="text" id="viewEmployeeJoinDate" readonly />
+            </div>
+
+            <div class="employee-modal-actions">
+                <button type="button" class="employee-cancel-button" id="cancelViewEmployeeModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         const addEmployeeModal = document.getElementById("addEmployeeModal");
@@ -179,16 +263,19 @@
         const employeeRole = document.getElementById("employeeRole");
         const confirmationCodeGroup = document.getElementById("confirmationCodeGroup");
 
+        // Opens the add employee modal.
         function showAddEmployeeModal() {
             addEmployeeModal.classList.add("show");
             document.body.classList.add("employee-modal-open");
         }
 
+        // Closes the add employee modal.
         function hideAddEmployeeModal() {
             addEmployeeModal.classList.remove("show");
             document.body.classList.remove("employee-modal-open");
         }
 
+        // Shows the confirmation code field only for admin role selection.
         function toggleConfirmationCodeField() {
             if (employeeRole.value === "admin") {
                 confirmationCodeGroup.classList.remove("hidden-role-field");
@@ -201,14 +288,9 @@
         closeAddEmployeeModal.addEventListener("click", hideAddEmployeeModal);
         cancelAddEmployeeModal.addEventListener("click", hideAddEmployeeModal);
 
+        // Closes the add employee modal when the overlay is clicked.
         addEmployeeModal.addEventListener("click", function (event) {
             if (event.target === addEmployeeModal) {
-                hideAddEmployeeModal();
-            }
-        });
-
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape" && addEmployeeModal.classList.contains("show")) {
                 hideAddEmployeeModal();
             }
         });
@@ -216,11 +298,71 @@
         employeeRole.addEventListener("change", toggleConfirmationCodeField);
         toggleConfirmationCodeField();
 
+        // Keeps the add employee form as a frontend stub for now.
         addEmployeeForm.addEventListener("submit", function (event) {
             event.preventDefault();
 
             // Stub for future add employee function
             console.log("Add Employee clicked");
+        });
+
+        const viewEmployeeModal = document.getElementById("viewEmployeeModal");
+        const closeViewEmployeeModal = document.getElementById("closeViewEmployeeModal");
+        const cancelViewEmployeeModal = document.getElementById("cancelViewEmployeeModal");
+        const viewEmployeeButtons = document.querySelectorAll(".open-view-employee-modal");
+
+        // Opens the employee details modal.
+        function showViewEmployeeModal() {
+            viewEmployeeModal.classList.add("show");
+            document.body.classList.add("employee-modal-open");
+        }
+
+        // Closes the employee details modal.
+        function hideViewEmployeeModal() {
+            viewEmployeeModal.classList.remove("show");
+            document.body.classList.remove("employee-modal-open");
+        }
+
+        // Loads the selected employee details into the read-only modal fields.
+        function populateViewEmployeeModal(button) {
+            document.getElementById("viewEmployeeId").value = button.getAttribute("data-employee-id") || "";
+            document.getElementById("viewEmployeeName").value = button.getAttribute("data-employee-name") || "";
+            document.getElementById("viewEmployeeEmail").value = button.getAttribute("data-employee-email") || "";
+            document.getElementById("viewEmployeeDepartment").value = button.getAttribute("data-employee-department") || "";
+            document.getElementById("viewEmployeePosition").value = button.getAttribute("data-employee-position") || "";
+            document.getElementById("viewEmployeeJoinDate").value = button.getAttribute("data-employee-join-date") || "";
+            document.getElementById("viewEmployeeStatus").value = button.getAttribute("data-employee-status") || "";
+        }
+
+        // Opens the employee details modal for the selected row.
+        viewEmployeeButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                populateViewEmployeeModal(button);
+                showViewEmployeeModal();
+            });
+        });
+
+        closeViewEmployeeModal.addEventListener("click", hideViewEmployeeModal);
+        cancelViewEmployeeModal.addEventListener("click", hideViewEmployeeModal);
+
+        // Closes the view employee modal when the overlay is clicked.
+        viewEmployeeModal.addEventListener("click", function (event) {
+            if (event.target === viewEmployeeModal) {
+                hideViewEmployeeModal();
+            }
+        });
+
+        // Closes whichever employee modal is currently open when Escape is pressed.
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                if (addEmployeeModal.classList.contains("show")) {
+                    hideAddEmployeeModal();
+                }
+
+                if (viewEmployeeModal.classList.contains("show")) {
+                    hideViewEmployeeModal();
+                }
+            }
         });
     </script>
 }
