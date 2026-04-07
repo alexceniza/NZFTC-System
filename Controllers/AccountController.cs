@@ -14,41 +14,48 @@ namespace NZFTC_Portal.Controllers
             _authService = authService;
         }
 
-        // Login page
+        // Loads the login page.
         [HttpGet]
         public IActionResult Login()
         {
             return View();
         }
 
-        // Login form submission
+        // Processes the login form submission.
         [HttpPost]
-        public IActionResult Login(string email, string password)
+        public IActionResult Login(string email, string password, string role)
         {
+            // Authenticates the user from the database using the submitted email and password.
             var user = _authService.Login(email, password);
 
-            // Invalid login
+            // Stops the login attempt if the account details are incorrect.
             if (user == null)
             {
-                ViewBag.Error = "Invalid email or password.";
-                return View();
+                TempData["LoginError"] = "Incorrect details or role. Please try again.";
+                return RedirectToAction("Login");
             }
 
-            // Route based on role FROM DATABASE
-            if (user.Role == "Admin" || user.Role == "Administrator")
+            // Uses the selected role pill as an RBAC confirmation step.
+            // The login only continues if the selected role matches the role stored for that user.
+            if ((user.Role == "Admin" || user.Role == "Administrator") &&
+                (role == "Admin" || role == "Administrator"))
             {
+                // Sends confirmed admin users to the admin dashboard.
                 return RedirectToAction("Dashboard", "Admin");
             }
 
-            if (user.Role == "Employee")
+            // Sends confirmed employee users to the employee dashboard.
+            if (user.Role == "Employee" && role == "Employee")
             {
                 return RedirectToAction("Dashboard", "Employee");
             }
 
+            // Rejects login if the selected role pill does not match the account role.
+            TempData["LoginError"] = "Incorrect details or role. Please try again.";
             return RedirectToAction("Login");
         }
 
-        // Logout action
+        // Logs the current user out and clears their session through the auth service.
         public IActionResult Logout()
         {
             _authService.Logout();
