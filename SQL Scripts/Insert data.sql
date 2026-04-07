@@ -15,6 +15,14 @@ INSERT INTO users (user_id, full_name, email, password_hash, role) VALUES
 
 
 -- =========================
+-- ADMINS (FIXED - REQUIRED)
+-- =========================
+INSERT INTO admins (user_id, admin_code) VALUES
+(3, 'ADM001'),
+(4, 'ADM002');
+
+
+-- =========================
 -- EMPLOYEES (MATCHES YOUR TABLE)
 -- =========================
 INSERT INTO employees 
@@ -22,8 +30,6 @@ INSERT INTO employees
 VALUES
 (1, 'EMP001', 'IT', 'Software Developer', '2023-01-10', 'Active'),
 (2, 'EMP002', 'IT', 'Frontend Developer', '2023-02-15', 'Active'),
-(3, 'ADM001', 'Management', 'System Administrator', '2022-08-01', 'Active'),
-(4, 'ADM002', 'Management', 'System Administrator', '2022-09-01', 'Active'),
 (5, 'EMP003', 'Finance', 'Accountant', '2021-07-10', 'Active'),
 (6, 'EMP004', 'HR', 'HR Specialist', '2023-01-20', 'Active'),
 (7, 'EMP005', 'Operations', 'Operations Officer', '2022-11-05', 'Active'),
@@ -65,12 +71,12 @@ INSERT INTO holidays (holiday_name, holiday_date) VALUES
 -- =========================
 -- LEAVE REQUESTS
 -- =========================
-INSERT INTO leave_requests 
-(employee_id, leave_type, start_date, end_date, reason, status) 
+INSERT INTO leave_requests
+(employee_id, admin_id, leave_type, start_date, end_date, reason, status)
 VALUES
-(1, 'Annual Leave', '2026-04-10', '2026-04-12', 'Vacation', 'Pending'),
-(2, 'Sick Leave', '2026-03-20', '2026-03-22', 'Flu', 'Approved'),
-(3, 'Annual Leave', '2026-05-01', '2026-05-05', 'Family event', 'Declined');
+(1, NULL, 'Annual Leave', '2026-04-10', '2026-04-12', 'Vacation', 'Pending'),
+(2, 3, 'Sick Leave', '2026-03-20', '2026-03-22', 'Flu', 'Approved'),
+(5, 4, 'Annual Leave', '2026-05-01', '2026-05-05', 'Family event', 'Declined');
 
 
 -- =========================
@@ -81,8 +87,6 @@ INSERT INTO payroll_records
 VALUES
 (1, 6500.00, 0.20, 200.00, 5000.00, '2026-03-31'),
 (2, 6000.00, 0.18, 150.00, 4750.00, '2026-03-31'),
-(3, 7000.00, 0.18, 150.00, 4000.00, '2026-03-31'),
-(4, 8000.00, 0.18, 150.00, 8000.00, '2026-03-31'),
 (5, 5500.00, 0.18, 150.00, 4400.00, '2026-03-31'),
 (6, 5000.00, 0.15, 100.00, 4150.00, '2026-03-31'),
 (7, 4800.00, 0.15, 120.00, 3960.00, '2026-03-31'),
@@ -97,4 +101,4 @@ INSERT INTO cases
 VALUES
 (1, 'Grievance', 'Workload Issue', 'Too much workload assigned', 'Open', '2026-03-15'),
 (2, 'Complaint', 'System Bug', 'Portal is slow', 'In Progress', '2026-03-18'),
-(3, 'Resignation', 'Leaving Company', 'Relocating overseas', 'Closed', '2026-02-10');
+(5, 'Resignation', 'Leaving Company', 'Relocating overseas', 'Closed', '2026-02-10');
