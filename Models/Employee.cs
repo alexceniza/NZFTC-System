@@ -17,7 +17,7 @@ public partial class Employee
 
     public string EmploymentStatus { get; set; } = null!;
 
-    public virtual ICollection<Cases> CasesTbls { get; set; } = new List<Cases>();
+    public virtual ICollection<Cases> Cases { get; set; } = new List<Cases>();
 
     public virtual EmployeeRecord? EmployeeRecord { get; set; }
 

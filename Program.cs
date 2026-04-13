@@ -45,6 +45,9 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IHolidayService, HolidayService>();
 // Registers backend services used during Sprint 2 integration.
 builder.Services.AddScoped<ILeaveService, LeaveService>();
+// Registers backend services used during Sprint 3 integration.
+builder.Services.AddScoped<IPayrollService, PayrollService>();
+builder.Services.AddScoped<ICaseService, CaseService>();
 
 var app = builder.Build();
 

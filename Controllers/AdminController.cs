@@ -1,9 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NZFTC_Portal.Models;
+using NZFTC_Portal.ViewModels;
 
 namespace NZFTC_Portal.Controllers
 {
     public class AdminController : Controller
     {
+        private readonly AppDbContext _context;
+
+        public AdminController(AppDbContext context)
+        {
+            _context = context;
+        }
+
         // Check if user is admin
         private bool IsAdmin()
         {
@@ -24,53 +34,49 @@ namespace NZFTC_Portal.Controllers
         }
 
         // Admin dashboard
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
             if (!IsAdmin())
                 return RedirectToAction("Login", "Account");
 
             SetAdminViewData("Dashboard");
-            return View();
-        }
 
-        // Admin leave management page
-        public IActionResult Leave()
-        {
-            if (!IsAdmin())
-                return RedirectToAction("Login", "Account");
+            // Total pending leave approvals
+            int pendingLeaveApprovals = await _context.LeaveRequests
+                .CountAsync(lr => lr.Status == "Pending");
 
-            SetAdminViewData("Leave");
-            return View();
-        }
+            // Total active employees
+            int employeeCount = await _context.Employees.CountAsync();
 
-        // Admin payroll management page
-        public IActionResult Payroll()
-        {
-            if (!IsAdmin())
-                return RedirectToAction("Login", "Account");
+            // Total open grievances/cases
+            int openCases = await _context.Cases
+                .CountAsync(c => c.Status == "Pending" || c.Status == "Open");
 
-            SetAdminViewData("Payroll");
-            return View();
-        }
+            // Recent leave requests for dashboard preview
+            var recentLeaveRequests = await _context.LeaveRequests
+                .Include(lr => lr.Employee)
+                .ThenInclude(e => e.User)
+                .Take(5)
+                .Select(lr => new AdminRecentLeaveRequestViewModel
+                {
+                    LeaveRequestId = lr.LeaveRequestId,
+                    EmployeeName = lr.Employee.User.FullName,
+                    LeaveType = lr.LeaveType,
+                    StartDate = lr.StartDate,
+                    EndDate = lr.EndDate,
+                    Status = lr.Status
+                })
+                .ToListAsync();
 
-        // Admin employee management page
-        public IActionResult Employees()
-        {
-            if (!IsAdmin())
-                return RedirectToAction("Login", "Account");
+            var model = new AdminDashboardViewModel
+            {
+                PendingLeaveApprovals = pendingLeaveApprovals,
+                EmployeeCount = employeeCount,
+                OpenCases = openCases,
+                RecentLeaveRequests = recentLeaveRequests
+            };
 
-            SetAdminViewData("Employees");
-            return View();
-        }
-
-        // Admin case management page
-        public IActionResult Cases()
-        {
-            if (!IsAdmin())
-                return RedirectToAction("Login", "Account");
-
-            SetAdminViewData("Cases");
-            return View();
+            return View(model);
         }
     }
 }

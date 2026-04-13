@@ -23,7 +23,7 @@ INSERT INTO admins (user_id, admin_code) VALUES
 
 
 -- =========================
--- EMPLOYEES (MATCHES YOUR TABLE)
+-- EMPLOYEES (MATCHES THE TABLE)
 -- =========================
 INSERT INTO employees 
 (user_id, employee_code, department, position, join_date, employment_status) 
@@ -44,8 +44,6 @@ INSERT INTO employee_records
 VALUES
 (1, '0210000001', 'Auckland, NZ', 'Lotte Doe', 'Exceeds expectations in backend development and teamwork.', 'Completed ASP.NET Core MVC training and secure coding workshop.'),
 (2, '0210000002', 'Auckland, NZ', 'River Moe', 'Strong frontend performance with consistent delivery of UI tasks.', 'Completed advanced CSS, JavaScript, and accessibility training.'),
-(3, '0210000003', 'Auckland, NZ', 'Tyler Cen', 'Perfect attendance.', 'Completed leadership trainings.'),
-(4, '0210000004', 'Wellington, NZ', 'Kole Kim', 'Demonstrates effective leadership and strong system administration skills.', 'Completed leadership development and cloud infrastructure training.'),
 (5, '0210000005', 'Wellington, NZ', 'Anna Smith', 'Accurate and reliable in financial reporting and payroll support.', 'Completed payroll compliance and Excel reporting training.'),
 (6, '0210000006', 'Christchurch, NZ', 'Carlos Garcia', 'Performs well in staff coordination and documentation tasks.', 'Completed HR policy, onboarding, and workplace relations training.'),
 (7, '0210000007', 'Hamilton, NZ', 'Kevin Lee', 'Consistently meets operational targets and handles process issues well.', 'Completed operations planning and health and safety training.'),

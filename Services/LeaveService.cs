@@ -137,5 +137,44 @@ namespace NZFTC_Portal.Services
 
             return filter;
         }
+
+        public async Task<EmployeeLeaveBalanceViewModel> GetEmployeeLeaveBalanceAsync(int employeeId)
+        {
+            var approvedLeaves = await _context.LeaveRequests
+                .Where(x => x.EmployeeId == employeeId && x.Status == "Approved")
+                .ToListAsync();
+
+            var leavePolicy = new Dictionary<string, int>
+            {
+                { "Annual Leave", 20 },
+                { "Sick Leave", 10 },
+                { "Personal Leave", 5 }
+            };
+
+            var result = new EmployeeLeaveBalanceViewModel();
+
+            foreach (var policy in leavePolicy)
+            {
+                int usedDays = approvedLeaves
+                    .Where(x => x.LeaveType == policy.Key)
+                    .Sum(x => x.EndDate.DayNumber - x.StartDate.DayNumber + 1);
+
+                int remainingDays = policy.Value - usedDays;
+                if (remainingDays < 0)
+                {
+                    remainingDays = 0;
+                }
+
+                result.LeaveBalances.Add(new LeaveBalanceItemViewModel
+                {
+                    LeaveType = policy.Key,
+                    TotalDays = policy.Value,
+                    UsedDays = usedDays,
+                    RemainingDays = remainingDays
+                });
+            }
+
+            return result;
+        }
     }
 }
