@@ -4,11 +4,36 @@
 
     // Loads the employee directory rows passed from the admin controller.
     var employeeDirectory = ViewData["EmployeeDirectory"] as string[][] ?? Array.Empty<string[]>();
+
+    // Tracks whether the add employee modal should reopen after a form result.
+    var hasAddEmployeeFeedback = TempData["Error"] != null || TempData["Success"] != null;
 }
 
 @section Styles {
     <!-- Admin employees CSS -->
     <link rel="stylesheet" href="~/css/admin-employees.css" asp-append-version="true" />
+
+    <style>
+        /* Add employee form feedback */
+        .employee-form-feedback {
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .employee-form-error {
+            background: #fff1f1;
+            border: 1px solid #f1b7b7;
+            color: #9f2f2f;
+        }
+
+        .employee-form-success {
+            background: #f2fff4;
+            border: 1px solid #b8e0bf;
+            color: #23663a;
+        }
+    </style>
 }
 
 <!-- Admin employees page -->
@@ -116,8 +141,24 @@
             <p>Create a new employee profile</p>
         </div>
 
+        @if (TempData["Error"] != null)
+        {
+            <!-- Add employee form error -->
+            <div class="employee-form-feedback employee-form-error">
+                @TempData["Error"]
+            </div>
+        }
+
+        @if (TempData["Success"] != null)
+        {
+            <!-- Add employee form success -->
+            <div class="employee-form-feedback employee-form-success">
+                @TempData["Success"]
+            </div>
+        }
+
         <!-- Modal form -->
-        <form class="employee-modal-form" id="addEmployeeForm">
+        <form class="employee-modal-form" id="addEmployeeForm" method="post" asp-controller="Admin" asp-action="CreateEmployee">
             <div class="employee-form-group">
                 <label for="employeeFullName">Full Name</label>
                 <input type="text" id="employeeFullName" name="employeeFullName" placeholder="Enter full name" />
@@ -188,6 +229,27 @@
                 <button type="submit" class="employee-submit-button">Add Employee</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Confirm create account modal -->
+<div class="employee-modal-overlay" id="confirmCreateAccountModal">
+    <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="confirmCreateAccountModalTitle">
+        <!-- Modal close -->
+        <button type="button" class="employee-modal-close" id="closeConfirmCreateAccountModal" aria-label="Close create account confirmation modal">
+            x
+        </button>
+
+        <!-- Modal heading -->
+        <div class="employee-modal-header">
+            <h2 id="confirmCreateAccountModalTitle">Confirm Account Creation</h2>
+            <p>Are you sure you want to create this account?</p>
+        </div>
+
+        <div class="employee-modal-actions">
+            <button type="button" class="employee-cancel-button" id="cancelConfirmCreateAccountModal">Cancel</button>
+            <button type="button" class="employee-submit-button" id="confirmCreateAccountButton">Confirm</button>
+        </div>
     </div>
 </div>
 
@@ -263,6 +325,13 @@
         const employeeRole = document.getElementById("employeeRole");
         const confirmationCodeGroup = document.getElementById("confirmationCodeGroup");
 
+        const confirmCreateAccountModal = document.getElementById("confirmCreateAccountModal");
+        const closeConfirmCreateAccountModal = document.getElementById("closeConfirmCreateAccountModal");
+        const cancelConfirmCreateAccountModal = document.getElementById("cancelConfirmCreateAccountModal");
+        const confirmCreateAccountButton = document.getElementById("confirmCreateAccountButton");
+
+        let allowCreateAccountSubmit = false;
+
         // Opens the add employee modal.
         function showAddEmployeeModal() {
             addEmployeeModal.classList.add("show");
@@ -272,6 +341,18 @@
         // Closes the add employee modal.
         function hideAddEmployeeModal() {
             addEmployeeModal.classList.remove("show");
+            document.body.classList.remove("employee-modal-open");
+        }
+
+        // Opens the create account confirmation modal.
+        function showConfirmCreateAccountModal() {
+            confirmCreateAccountModal.classList.add("show");
+            document.body.classList.add("employee-modal-open");
+        }
+
+        // Closes the create account confirmation modal.
+        function hideConfirmCreateAccountModal() {
+            confirmCreateAccountModal.classList.remove("show");
             document.body.classList.remove("employee-modal-open");
         }
 
@@ -295,16 +376,40 @@
             }
         });
 
+        // Stops immediate submit and opens the confirmation modal first.
+        addEmployeeForm.addEventListener("submit", function (event) {
+            if (!allowCreateAccountSubmit) {
+                event.preventDefault();
+                showConfirmCreateAccountModal();
+            }
+        });
+
+        // Allows the real submit after confirmation.
+        confirmCreateAccountButton.addEventListener("click", function () {
+            allowCreateAccountSubmit = true;
+            hideConfirmCreateAccountModal();
+            addEmployeeForm.submit();
+        });
+
+        closeConfirmCreateAccountModal.addEventListener("click", hideConfirmCreateAccountModal);
+        cancelConfirmCreateAccountModal.addEventListener("click", hideConfirmCreateAccountModal);
+
+        // Closes the confirmation modal when the overlay is clicked.
+        confirmCreateAccountModal.addEventListener("click", function (event) {
+            if (event.target === confirmCreateAccountModal) {
+                hideConfirmCreateAccountModal();
+            }
+        });
+
         employeeRole.addEventListener("change", toggleConfirmationCodeField);
         toggleConfirmationCodeField();
 
-        // Keeps the add employee form as a frontend stub for now.
-        addEmployeeForm.addEventListener("submit", function (event) {
-            event.preventDefault();
+        // Reopens the add employee modal when the form returns an error or success message.
+        const hasAddEmployeeFeedback = @hasAddEmployeeFeedback.ToString().ToLower();
 
-            // Stub for future add employee function
-            console.log("Add Employee clicked");
-        });
+        if (hasAddEmployeeFeedback) {
+            showAddEmployeeModal();
+        }
 
         const viewEmployeeModal = document.getElementById("viewEmployeeModal");
         const closeViewEmployeeModal = document.getElementById("closeViewEmployeeModal");
@@ -357,6 +462,10 @@
             if (event.key === "Escape") {
                 if (addEmployeeModal.classList.contains("show")) {
                     hideAddEmployeeModal();
+                }
+
+                if (confirmCreateAccountModal.classList.contains("show")) {
+                    hideConfirmCreateAccountModal();
                 }
 
                 if (viewEmployeeModal.classList.contains("show")) {
