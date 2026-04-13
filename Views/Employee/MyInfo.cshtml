@@ -1,17 +1,8 @@
-﻿@{
+﻿@model NZFTC_Portal.ViewModels.EmployeeMyInfoViewModel
+
+@{
     ViewData["Title"] = "Employee My Info";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
-
-    // Loads the current employee profile values from ViewData.
-    var employeeId = ViewData["EmployeeId"]?.ToString() ?? "--";
-    var employeeFullName = ViewData["EmployeeFullName"]?.ToString() ?? "--";
-    var employeeContactNumber = ViewData["EmployeeContactNumber"]?.ToString() ?? "--";
-    var employeeEmergencyContact = ViewData["EmployeeEmergencyContact"]?.ToString() ?? "--";
-    var employeeEmailAddress = ViewData["EmployeeEmailAddress"]?.ToString() ?? "--";
-    var employeeDepartment = ViewData["EmployeeDepartment"]?.ToString() ?? "--";
-    var employeePosition = ViewData["EmployeePosition"]?.ToString() ?? "--";
-    var employeeJoinDate = ViewData["EmployeeJoinDate"]?.ToString() ?? "--";
-    var employeeStatus = ViewData["EmployeeStatus"]?.ToString() ?? "Active";
 }
 
 @section Styles {
@@ -44,17 +35,17 @@
             <div class="personal-info-grid">
                 <div class="info-group">
                     <label for="employeeId">Employee ID</label>
-                    <input type="text" id="employeeId" class="info-input" value="@employeeId" readonly />
+                    <input type="text" id="employeeId" class="info-input" value="@Model.EmployeeId" readonly />
                 </div>
 
                 <div class="info-group">
                     <label>Status</label>
-                    <div class="status-box active-status">@employeeStatus</div>
+                    <div class="status-box active-status">@Model.Status</div>
                 </div>
 
                 <div class="info-group">
                     <label for="fullName">Full Name</label>
-                    <input type="text" id="fullName" class="info-input" value="@employeeFullName" readonly />
+                    <input type="text" id="fullName" class="info-input" value="@Model.FullName" readonly />
                 </div>
 
                 <div class="info-group info-group-empty"></div>
@@ -66,7 +57,7 @@
                                id="contactNumber"
                                name="contactNumber"
                                class="info-input editable-input"
-                               value="@employeeContactNumber"
+                               value="@Model.ContactNumber"
                                readonly />
                         <button type="button" class="edit-button" data-target="contactNumber">Edit</button>
                     </div>
@@ -79,32 +70,32 @@
                                id="emergencyContact"
                                name="emergencyContact"
                                class="info-input editable-input"
-                               value="@employeeEmergencyContact"
+                               value="@Model.EmergencyContact"
                                readonly />
                         <button type="button" class="edit-button" data-target="emergencyContact">Edit</button>
                     </div>
                 </div>
 
                 <div class="info-group">
-                    <label for="emailAddress">Email Address</label>
-                    <input type="text" id="emailAddress" class="info-input" value="@employeeEmailAddress" readonly />
+                    <label>Email Address</label>
+                    <input type="text" class="info-input" value="@Model.EmailAddress" readonly />
                 </div>
 
                 <div class="info-group info-group-empty"></div>
 
                 <div class="info-group">
-                    <label for="department">Department</label>
-                    <input type="text" id="department" class="info-input" value="@employeeDepartment" readonly />
+                    <label>Department</label>
+                    <input type="text" class="info-input" value="@Model.Department" readonly />
                 </div>
 
                 <div class="info-group">
-                    <label for="position">Position</label>
-                    <input type="text" id="position" class="info-input" value="@employeePosition" readonly />
+                    <label>Position</label>
+                    <input type="text" class="info-input" value="@Model.Position" readonly />
                 </div>
 
                 <div class="info-group">
-                    <label for="joinDate">Join Date</label>
-                    <input type="text" id="joinDate" class="info-input" value="@employeeJoinDate" readonly />
+                    <label>Join Date</label>
+                    <input type="text" class="info-input" value="@Model.JoinDate" readonly />
                 </div>
 
                 <div class="info-group info-group-empty"></div>
