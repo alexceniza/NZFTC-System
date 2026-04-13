@@ -1,12 +1,8 @@
-﻿@{
+﻿@model NZFTC_Portal.ViewModels.EmployeeDashboardViewModel
+
+@{
     ViewData["Title"] = "Employee Dashboard";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
-
-    // Loads the holiday preview list for the dashboard card.
-    var holidayPreview = ViewData["HolidayPreview"] as string[][] ?? Array.Empty<string[]>();
-
-    // Loads the full holiday list for the holiday pop-out.
-    var holidayFullList = ViewData["HolidayFullList"] as string[][] ?? Array.Empty<string[]>();
 }
 
 @section Styles {
@@ -122,7 +118,7 @@
 
             <!-- Card action -->
             <div class="card-action">
-                <a asp-controller="Employee" asp-action="Payroll" class="primary-button">View All</a>
+                <a asp-controller="EmployeePayroll" asp-action="Index" class="primary-button">View All</a>
             </div>
         </section>
 
@@ -140,12 +136,14 @@
 
             <!-- Holiday preview list -->
             <div class="holiday-list">
-                @foreach (var holiday in holidayPreview)
+                @if (Model?.HolidayPreview != null && Model.HolidayPreview.Any())
+                {
+                    foreach (var holiday in Model.HolidayPreview)
                 {
                     <div class="holiday-row">
                         <div class="holiday-text">
-                            <span class="holiday-name">@holiday[0]</span>
-                            <span class="holiday-date">@holiday[1]</span>
+                                <span class="holiday-name">@holiday.HolidayName</span>
+                                <span class="holiday-date">@holiday.HolidayDate.ToString("dd/MM/yyyy")</span>
                         </div>
 
                         <span class="holiday-icon" aria-hidden="true">
@@ -156,6 +154,16 @@
                                 <path d="M4 9H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                             </svg>
                         </span>
+                    </div>
+                    }
+                }
+                else
+                {
+                    <div class="holiday-row">
+                        <div class="holiday-text">
+                            <span class="holiday-name">No upcoming holidays</span>
+                            <span class="holiday-date">--</span>
+                        </div>
                     </div>
                 }
             </div>
@@ -180,12 +188,14 @@
         <!-- Full holiday list -->
         <div class="holiday-modal-list">
             <div class="holiday-list">
-                @foreach (var holiday in holidayFullList)
+                @if (Model?.HolidayFullList != null && Model.HolidayFullList.Any())
+                {
+                    foreach (var holiday in Model.HolidayFullList)
                 {
                     <div class="holiday-row">
                         <div class="holiday-text">
-                            <span class="holiday-name">@holiday[0]</span>
-                            <span class="holiday-date">@holiday[1]</span>
+                                <span class="holiday-name">@holiday.HolidayName</span>
+                                <span class="holiday-date">@holiday.HolidayDate.ToString("dd/MM/yyyy")</span>
                         </div>
 
                         <span class="holiday-icon" aria-hidden="true">
@@ -196,6 +206,16 @@
                                 <path d="M4 9H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                             </svg>
                         </span>
+                    </div>
+                }
+                }
+                else
+                {
+                    <div class="holiday-row">
+                        <div class="holiday-text">
+                            <span class="holiday-name">No holidays available</span>
+                            <span class="holiday-date">--</span>
+                        </div>
                     </div>
                 }
             </div>
