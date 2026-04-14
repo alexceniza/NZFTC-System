@@ -1,12 +1,15 @@
-﻿@{
+﻿@model List<NZFTC_Portal.ViewModels.AdminEmployeeViewModel>
+
+@{
     ViewData["Title"] = "Employee Management";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
 
-    // Loads the employee directory rows passed from the admin controller.
-    var employeeDirectory = ViewData["EmployeeDirectory"] as string[][] ?? Array.Empty<string[]>();
-
     // Tracks whether the add employee modal should reopen after a form result.
-    var hasAddEmployeeFeedback = TempData["Error"] != null || TempData["Success"] != null;
+    var hasAddEmployeeFeedback =
+        TempData["Error"] != null ||
+        TempData["Success"] != null ||
+        TempData["ErrorMessage"] != null ||
+        TempData["SuccessMessage"] != null;
 }
 
 @section Styles {
@@ -74,7 +77,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (employeeDirectory.Length == 0)
+                    @if (Model == null || !Model.Any())
                     {
                         <!-- Empty state row -->
                         <tr>
@@ -84,15 +87,15 @@
                     else
                     {
                         <!-- Employee directory rows -->
-                        @foreach (var employee in employeeDirectory)
+                        @foreach (var employee in Model)
                         {
-                            var employeeId = employee[0];
-                            var employeeName = employee[1];
-                            var employeeEmail = employee[2];
-                            var employeeDepartment = employee[3];
-                            var employeePosition = employee[4];
-                            var employeeJoinDate = employee[5];
-                            var employeeStatus = employee[6];
+                            var employeeId = employee.EmployeeCode;
+                            var employeeName = employee.FullName;
+                            var employeeEmail = employee.Email;
+                            var employeeDepartment = employee.Department;
+                            var employeePosition = employee.Position;
+                            var employeeJoinDate = employee.JoinDate.ToString("dd/MM/yyyy");
+                            var employeeStatus = employee.EmploymentStatus;
                             var statusClass = employeeStatus == "Active" ? "active-status" : "leave-status";
 
                             <tr>
@@ -141,86 +144,88 @@
             <p>Create a new employee profile</p>
         </div>
 
-        @if (TempData["Error"] != null)
+        @if (TempData["Error"] != null || TempData["ErrorMessage"] != null)
         {
             <!-- Add employee form error -->
             <div class="employee-form-feedback employee-form-error">
-                @TempData["Error"]
+                @(TempData["Error"] ?? TempData["ErrorMessage"])
             </div>
         }
 
-        @if (TempData["Success"] != null)
+        @if (TempData["Success"] != null || TempData["SuccessMessage"] != null)
         {
             <!-- Add employee form success -->
             <div class="employee-form-feedback employee-form-success">
-                @TempData["Success"]
+                @(TempData["Success"] ?? TempData["SuccessMessage"])
             </div>
         }
 
         <!-- Modal form -->
-        <form class="employee-modal-form" id="addEmployeeForm" method="post" asp-controller="Admin" asp-action="CreateEmployee">
+        <form class="employee-modal-form" id="addEmployeeForm" method="post" asp-controller="AdminEmployee" asp-action="Create">
+            @Html.AntiForgeryToken()
+
             <div class="employee-form-group">
                 <label for="employeeFullName">Full Name</label>
-                <input type="text" id="employeeFullName" name="employeeFullName" placeholder="Enter full name" />
+                <input type="text" id="employeeFullName" name="FullName" placeholder="Enter full name" />
             </div>
 
             <div class="employee-form-row">
                 <div class="employee-form-group">
                     <label for="employeeContact">Contact</label>
-                    <input type="text" id="employeeContact" name="employeeContact" placeholder="Enter contact number" />
+                    <input type="text" id="employeeContact" name="ContactNumber" placeholder="Enter contact number" />
                 </div>
 
                 <div class="employee-form-group">
                     <label for="employeeEmergencyContact">Emergency Contact</label>
-                    <input type="text" id="employeeEmergencyContact" name="employeeEmergencyContact" placeholder="Enter emergency contact" />
+                    <input type="text" id="employeeEmergencyContact" name="EmergencyContact" placeholder="Enter emergency contact" />
                 </div>
             </div>
 
             <div class="employee-form-group">
                 <label for="employeeEmail">Email</label>
-                <input type="text" id="employeeEmail" name="employeeEmail" placeholder="Enter email address" />
+                <input type="text" id="employeeEmail" name="Email" placeholder="Enter email address" />
             </div>
 
             <div class="employee-form-row">
                 <div class="employee-form-group">
                     <label for="employeeRole">Role</label>
-                    <select id="employeeRole" name="employeeRole">
+                    <select id="employeeRole" name="Role">
                         <option value="">Select role</option>
-                        <option value="employee">Employee</option>
-                        <option value="admin">Admin</option>
+                        <option value="Employee">Employee</option>
+                        <option value="Admin">Admin</option>
                     </select>
                 </div>
 
                 <div class="employee-form-group">
                     <label for="employeeRoleId">Role ID</label>
-                    <input type="text" id="employeeRoleId" name="employeeRoleId" placeholder="EMP001 / ADM001" />
+                    <input type="text" id="employeeRoleId" name="EmployeeCode" placeholder="EMP001 / ADM001" />
                 </div>
             </div>
 
             <div class="employee-form-group hidden-role-field" id="confirmationCodeGroup">
                 <label for="employeeConfirmationCode">Confirmation Code</label>
-                <input type="text" id="employeeConfirmationCode" name="employeeConfirmationCode" placeholder="12 digit confirmation code" maxlength="12" />
+                <input type="text" id="employeeConfirmationCode" name="ConfirmationCode" placeholder="12 digit confirmation code" maxlength="12" />
             </div>
 
             <div class="employee-form-group">
                 <label for="employeeTraining">Prior Training</label>
-                <textarea id="employeeTraining" name="employeeTraining" rows="3" placeholder="Enter prior training if any"></textarea>
+                <textarea id="employeeTraining" name="TrainingRecord" rows="3" placeholder="Enter prior training if any"></textarea>
             </div>
 
             <div class="employee-form-group">
                 <label for="employeeHistory">Employment History</label>
-                <textarea id="employeeHistory" name="employeeHistory" rows="3" placeholder="Enter employment history if any"></textarea>
+                <textarea id="employeeHistory" name="EmploymentHistory" rows="3" placeholder="Enter employment history if any"></textarea>
             </div>
 
             <div class="employee-form-row">
                 <div class="employee-form-group">
                     <label for="employeeDepartment">Department</label>
-                    <input type="text" id="employeeDepartment" name="employeeDepartment" placeholder="Enter department" />
+                    <input type="text" id="employeeDepartment" name="Department" placeholder="Enter department" />
                 </div>
 
                 <div class="employee-form-group">
                     <label for="employeePosition">Position</label>
-                    <input type="text" id="employeePosition" name="employeePosition" placeholder="Enter position" />
+                    <input type="text" id="employeePosition" name="Position" placeholder="Enter position" />
                 </div>
             </div>
 
@@ -338,10 +343,19 @@
             document.body.classList.add("employee-modal-open");
         }
 
+        // Clears add employee feedback messages after the modal is manually closed.
+        function clearAddEmployeeFeedback() {
+            const feedbackMessages = addEmployeeModal.querySelectorAll(".employee-form-feedback");
+            feedbackMessages.forEach(function (message) {
+                message.remove();
+            });
+        }
+
         // Closes the add employee modal.
         function hideAddEmployeeModal() {
             addEmployeeModal.classList.remove("show");
             document.body.classList.remove("employee-modal-open");
+            clearAddEmployeeFeedback();
         }
 
         // Opens the create account confirmation modal.
@@ -358,7 +372,7 @@
 
         // Shows the confirmation code field only for admin role selection.
         function toggleConfirmationCodeField() {
-            if (employeeRole.value === "admin") {
+            if (employeeRole.value === "Admin") {
                 confirmationCodeGroup.classList.remove("hidden-role-field");
             } else {
                 confirmationCodeGroup.classList.add("hidden-role-field");
