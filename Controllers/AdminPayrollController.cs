@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NZFTC_Portal.Interfaces;
 using NZFTC_Portal.ViewModels;
-using System.Security.Claims;
 
 namespace NZFTC_Portal.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class AdminPayrollController : Controller
     {
         private readonly IPayrollService _payrollService;
@@ -16,16 +13,42 @@ namespace NZFTC_Portal.Controllers
             _payrollService = payrollService;
         }
 
+        private bool IsAdmin()
+        {
+            return HttpContext.Session.GetString("Role") == "Admin"
+                || HttpContext.Session.GetString("Role") == "Administrator";
+        }
+
+        private void SetAdminViewData(string activeTab)
+        {
+            var fullName = HttpContext.Session.GetString("FullName") ?? "Admin";
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+            ViewData["PortalUserName"] = $"{fullName} - ADM{userId}";
+            ViewData["PortalRole"] = "Admin";
+            ViewData["ActiveTab"] = activeTab;
+            ViewData["PortalNavItems"] = new[] { "Dashboard", "Leave", "Payroll", "Employees", "Cases" };
+        }
+
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            SetAdminViewData("Payroll");
+
             var payrolls = await _payrollService.GetAllPayrollRecordsAsync();
-            return View(payrolls);
+            return View("~/Views/Admin/Payroll.cshtml", payrolls);
         }
 
         [HttpGet]
         public IActionResult Create()
         {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            SetAdminViewData("Payroll");
             return View(new PayrollCreateViewModel());
         }
 
@@ -33,19 +56,29 @@ namespace NZFTC_Portal.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(PayrollCreateViewModel model)
         {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            SetAdminViewData("Payroll");
+
             if (!ModelState.IsValid)
             {
-                return View(model);
+                TempData["ErrorMessage"] = "Please complete all required payroll fields.";
+                var payrolls = await _payrollService.GetAllPayrollRecordsAsync();
+                return View("~/Views/Admin/Payroll.cshtml", payrolls);
             }
 
             int adminId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (adminId == 0)
+                return RedirectToAction("Login", "Account");
 
             bool created = await _payrollService.CreatePayrollRecordAsync(model, adminId);
 
             if (!created)
             {
-                ModelState.AddModelError(string.Empty, "Unable to create payroll record.");
-                return View(model);
+                TempData["ErrorMessage"] = "Unable to create payroll record.";
+                var payrolls = await _payrollService.GetAllPayrollRecordsAsync();
+                return View("~/Views/Admin/Payroll.cshtml", payrolls);
             }
 
             TempData["SuccessMessage"] = "Payroll record created successfully.";

@@ -48,7 +48,7 @@ namespace NZFTC_Portal.Services
         {
             return await _context.LeaveRequests
                 .Include(x => x.Employee)
-                    .ThenInclude(e => e.User)
+                .ThenInclude(e => e.User)
                 .Where(x => x.Status == "Pending")
                 .OrderBy(x => x.StartDate)
                 .ToListAsync();

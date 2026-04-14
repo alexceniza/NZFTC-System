@@ -45,17 +45,18 @@ namespace NZFTC_Portal.Controllers
             int pendingLeaveApprovals = await _context.LeaveRequests
                 .CountAsync(lr => lr.Status == "Pending");
 
-            // Total active employees
+            // Total employees
             int employeeCount = await _context.Employees.CountAsync();
 
             // Total open grievances/cases
             int openCases = await _context.Cases
-                .CountAsync(c => c.Status == "Pending" || c.Status == "Open");
+                .CountAsync(c => c.Status == "Pending" || c.Status == "Open" || c.Status == "In Progress");
 
             // Recent leave requests for dashboard preview
             var recentLeaveRequests = await _context.LeaveRequests
                 .Include(lr => lr.Employee)
                 .ThenInclude(e => e.User)
+                .OrderByDescending(lr => lr.LeaveRequestId)
                 .Take(5)
                 .Select(lr => new AdminRecentLeaveRequestViewModel
                 {
@@ -79,4 +80,5 @@ namespace NZFTC_Portal.Controllers
             return View(model);
         }
     }
+    
 }

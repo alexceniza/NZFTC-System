@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NZFTC_Portal.Interfaces;
 using NZFTC_Portal.ViewModels;
-using System.Security.Claims;
 
 namespace NZFTC_Portal.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class AdminCaseController : Controller
     {
         private readonly ICaseService _caseService;
@@ -16,17 +13,42 @@ namespace NZFTC_Portal.Controllers
             _caseService = caseService;
         }
 
+        private bool IsAdmin()
+        {
+            return HttpContext.Session.GetString("Role") == "Admin"
+                || HttpContext.Session.GetString("Role") == "Administrator";
+        }
+
+        private void SetAdminViewData(string activeTab)
+        {
+            var fullName = HttpContext.Session.GetString("FullName") ?? "Admin";
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+            ViewData["PortalUserName"] = $"{fullName} - ADM{userId}";
+            ViewData["PortalRole"] = "Admin";
+            ViewData["ActiveTab"] = activeTab;
+            ViewData["PortalNavItems"] = new[] { "Dashboard", "Leave", "Payroll", "Employees", "Cases" };
+        }
+
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            SetAdminViewData("Cases");
+
             var cases = await _caseService.GetAllCasesAsync();
-            return View(cases);
+            return View("~/Views/Admin/Cases.cshtml", cases);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(CaseStatusUpdateViewModel model)
         {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "Invalid case update request.";
@@ -34,6 +56,8 @@ namespace NZFTC_Portal.Controllers
             }
 
             int adminId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (adminId == 0)
+                return RedirectToAction("Login", "Account");
 
             bool updated = await _caseService.UpdateCaseStatusAsync(adminId, model);
 

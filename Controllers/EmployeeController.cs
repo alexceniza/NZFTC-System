@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using NZFTC_Portal.Interfaces;
 using NZFTC_Portal.Models;
 using NZFTC_Portal.ViewModels;
-using System.Linq;
 
 namespace NZFTC_Portal.Controllers
 {
