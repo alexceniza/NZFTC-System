@@ -18,7 +18,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Admin> Admins { get; set; }
 
-    public virtual DbSet<Cases> CasesTbls { get; set; }
+    public virtual DbSet<Cases> Cases { get; set; }
 
     public virtual DbSet<Employee> Employees { get; set; }
 
@@ -93,12 +93,12 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("subject");
             entity.Property(e => e.SubmittedDate).HasColumnName("submitted_date");
 
-            entity.HasOne(d => d.Admin).WithMany(p => p.CasesTbls)
+            entity.HasOne(d => d.Admin).WithMany(p => p.Cases)
                 .HasForeignKey(d => d.AdminId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_case_admin");
 
-            entity.HasOne(d => d.Employee).WithMany(p => p.CasesTbls)
+            entity.HasOne(d => d.Employee).WithMany(p => p.Cases)
                 .HasForeignKey(d => d.EmployeeId)
                 .HasConstraintName("fk_case_employee");
         });

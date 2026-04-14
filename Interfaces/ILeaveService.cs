@@ -10,5 +10,6 @@ namespace NZFTC_Portal.Interfaces
         Task<List<LeaveRequest>> GetPendingLeaveRequestsAsync();
         Task<bool> ApproveOrDeclineAsync(int leaveRequestId, int adminId, string decision);
         Task<AdminLeaveReportFilterViewModel> GetAdminLeaveReportAsync(AdminLeaveReportFilterViewModel filter);
+        Task<EmployeeLeaveBalanceViewModel> GetEmployeeLeaveBalanceAsync(int employeeId);
     }
 }

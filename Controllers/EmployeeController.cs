@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NZFTC_Portal.Interfaces;
 using NZFTC_Portal.Models;
+using NZFTC_Portal.ViewModels;
 using System.Linq;
 
 namespace NZFTC_Portal.Controllers
@@ -7,10 +10,20 @@ namespace NZFTC_Portal.Controllers
     public class EmployeeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ILeaveService _leaveService;
+        private readonly IPayrollService _payrollService;
+        private readonly ICaseService _caseService;
 
-        public EmployeeController(AppDbContext context)
+        public EmployeeController(
+            AppDbContext context,
+            ILeaveService leaveService,
+            IPayrollService payrollService,
+            ICaseService caseService)
         {
             _context = context;
+            _leaveService = leaveService;
+            _payrollService = payrollService;
+            _caseService = caseService;
         }
 
         // Check if logged-in user is employee
@@ -42,38 +55,50 @@ namespace NZFTC_Portal.Controllers
         }
 
         // Employee dashboard
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
 
             SetEmployeeViewData("Dashboard");
 
-            // Gets all holidays in date order for dashboard display.
-            var holidays = _context.Holidays
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return RedirectToAction("Login", "Account");
+
+            int employeeId = userId.Value;
+
+            var leaveBalance = await _leaveService.GetEmployeeLeaveBalanceAsync(employeeId);
+            var latestPayslip = await _payrollService.GetLatestPayslipAsync(employeeId);
+
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            var upcomingHolidays = await _context.Holidays
+                .Where(h => h.HolidayDate >= today)
                 .OrderBy(h => h.HolidayDate)
-                .ToList();
+                .ToListAsync();
 
-            // Sends the first 3 holidays to the dashboard preview section.
-            ViewData["HolidayPreview"] = holidays
-                .Take(3)
-                .Select(h => new[]
-                {
-                    h.HolidayName,
-                    h.HolidayDate.ToString("dd/MM/yyyy")
-                })
-                .ToArray();
+            var model = new EmployeeDashboardViewModel
+            {
+                AnnualLeave = leaveBalance.LeaveBalances
+                    .FirstOrDefault(x => x.LeaveType == "Annual Leave"),
 
-            // Sends the full holiday list to the View All modal.
-            ViewData["HolidayFullList"] = holidays
-                .Select(h => new[]
-                {
-                    h.HolidayName,
-                    h.HolidayDate.ToString("dd/MM/yyyy")
-                })
-                .ToArray();
+                SickLeave = leaveBalance.LeaveBalances
+                    .FirstOrDefault(x => x.LeaveType == "Sick Leave"),
 
-            return View();
+                PersonalLeave = leaveBalance.LeaveBalances
+                    .FirstOrDefault(x => x.LeaveType == "Personal Leave"),
+
+                LatestPayslip = latestPayslip,
+
+                HolidayPreview = upcomingHolidays
+                    .Take(3)
+                    .ToList(),
+
+                HolidayFullList = upcomingHolidays
+            };
+
+            return View(model);
         }
 
         // Employee leave page
@@ -197,7 +222,7 @@ namespace NZFTC_Portal.Controllers
         }
 
         // Employee information page
-        public IActionResult MyInfo()
+        public async Task<IActionResult> MyInfo()
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
@@ -205,38 +230,49 @@ namespace NZFTC_Portal.Controllers
             SetEmployeeViewData("My Info");
 
             int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (userId == 0)
+                return RedirectToAction("Login", "Account");
 
-            // Gets the employee row linked to the logged-in user.
-            var employee = _context.Employees.FirstOrDefault(e => e.UserId == userId);
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.UserId == userId);
+
             if (employee == null)
                 return NotFound();
 
-            // Gets the personal record row linked to the employee.
-            var employeeRecord = _context.EmployeeRecords.FirstOrDefault(r => r.EmployeeId == employee.UserId);
+            var employeeRecord = await _context.EmployeeRecords
+                .FirstOrDefaultAsync(r => r.EmployeeId == employee.UserId);
+
             if (employeeRecord == null)
                 return NotFound();
 
-            // Gets the base user row so the page can show full name and email.
-            var user = _context.Users.FirstOrDefault(u => u.UserId == userId);
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
             if (user == null)
                 return NotFound();
 
-            // Populates the exact ViewData keys expected by MyInfo.cshtml.
-            ViewData["EmployeeId"] = employee.EmployeeCode;
-            ViewData["EmployeeFullName"] = user.FullName;
-            ViewData["EmployeeContactNumber"] = employeeRecord.PhoneNumber;
-            ViewData["EmployeeEmergencyContact"] = employeeRecord.EmergencyContact;
-            ViewData["EmployeeEmailAddress"] = user.Email;
-            ViewData["EmployeeDepartment"] = employee.Department;
-            ViewData["EmployeePosition"] = employee.Position;
-            ViewData["EmployeeJoinDate"] = employee.JoinDate.ToString("dd/MM/yyyy");
-            ViewData["EmployeeStatus"] = employee.EmploymentStatus;
+            var employeeCases = await _caseService.GetEmployeeCasesAsync(userId);
 
-            return View(employeeRecord);
+            var model = new EmployeeMyInfoViewModel
+            {
+                EmployeeId = employee.EmployeeCode,
+                FullName = user.FullName,
+                ContactNumber = employeeRecord.PhoneNumber,
+                EmergencyContact = employeeRecord.EmergencyContact,
+                EmailAddress = user.Email,
+                Department = employee.Department,
+                Position = employee.Position,
+                JoinDate = employee.JoinDate.ToString("dd/MM/yyyy"),
+                Status = employee.EmploymentStatus,
+                Cases = employeeCases.ToList()
+            };
+
+            return View(model);
         }
 
         // Employee self-update
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult UpdateProfile(string updateField, string contactNumber, string emergencyContact)
         {
             if (!IsEmployee())
