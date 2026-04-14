@@ -125,7 +125,92 @@ namespace NZFTC_Portal.Controllers
                 return RedirectToAction("Login", "Account");
 
             SetAdminViewData("Leave");
+
+            // Loads all leave requests for the admin review table.
+            var allLeaveRequests = _context.LeaveRequests
+                .Join(
+                    _context.Employees,
+                    request => request.EmployeeId,
+                    employee => employee.UserId,
+                    (request, employee) => new { request, employee })
+                .Join(
+                    _context.Users,
+                    combined => combined.employee.UserId,
+                    user => user.UserId,
+                    (combined, user) => new
+                    {
+                        combined.request.LeaveRequestId,
+                        combined.request.LeaveType,
+                        combined.request.StartDate,
+                        combined.request.EndDate,
+                        combined.request.Reason,
+                        combined.request.Status,
+                        EmployeeName = user.FullName,
+                        EmployeeCode = combined.employee.EmployeeCode
+                    })
+                .OrderByDescending(r => r.LeaveRequestId)
+                .AsEnumerable()
+                .Select(r => new[]
+                {
+                    $"LV-{r.LeaveRequestId:D3}",
+                    r.EmployeeName,
+                    r.EmployeeCode,
+                    r.LeaveType,
+                    $"{r.StartDate:dd/MM/yyyy} - {r.EndDate:dd/MM/yyyy}",
+                    ((r.EndDate.DayNumber - r.StartDate.DayNumber) + 1).ToString(),
+                    string.IsNullOrWhiteSpace(r.Reason) ? "--" : r.Reason,
+                    r.Status,
+                    r.LeaveRequestId.ToString()
+                })
+                .ToArray();
+
+            ViewData["AdminLeaveRequests"] = allLeaveRequests;
+
+            // Loads simple reporting counts for the admin leave report section.
+            ViewData["TotalLeaveRequests"] = _context.LeaveRequests.Count().ToString();
+            ViewData["ApprovedLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Approved").ToString();
+            ViewData["PendingLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Pending").ToString();
+            ViewData["RejectedLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Rejected").ToString();
+
             return View();
+        }
+
+        // Admin leave approval
+        [HttpPost]
+        public IActionResult ApproveLeave(int leaveRequestId)
+        {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            var leaveRequest = _context.LeaveRequests.FirstOrDefault(r => r.LeaveRequestId == leaveRequestId);
+            if (leaveRequest == null)
+                return RedirectToAction("Leave");
+
+            leaveRequest.Status = "Approved";
+            leaveRequest.AdminId = HttpContext.Session.GetInt32("UserId");
+
+            _context.SaveChanges();
+
+            return RedirectToAction("Leave");
+        }
+
+        // Admin leave rejection
+        [HttpPost]
+        public IActionResult RejectLeave(int leaveRequestId)
+        {
+            if (!IsAdmin())
+                return RedirectToAction("Login", "Account");
+
+            var leaveRequest = _context.LeaveRequests.FirstOrDefault(r => r.LeaveRequestId == leaveRequestId);
+            if (leaveRequest == null)
+                return RedirectToAction("Leave");
+
+            leaveRequest.Status = "Rejected";
+            leaveRequest.AdminId = HttpContext.Session.GetInt32("UserId");
+
+            _context.SaveChanges();
+
+            return RedirectToAction("Leave");
         }
 
         // Admin payroll management page

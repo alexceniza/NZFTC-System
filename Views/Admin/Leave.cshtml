@@ -1,6 +1,15 @@
 ﻿@{
     ViewData["Title"] = "Leave Management";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    // Loads all leave requests for the admin review table.
+    var adminLeaveRequests = ViewData["AdminLeaveRequests"] as string[][] ?? Array.Empty<string[]>();
+
+    // Loads simple leave reporting counts.
+    var totalLeaveRequests = ViewData["TotalLeaveRequests"]?.ToString() ?? "0";
+    var approvedLeaveRequests = ViewData["ApprovedLeaveRequests"]?.ToString() ?? "0";
+    var pendingLeaveRequests = ViewData["PendingLeaveRequests"]?.ToString() ?? "0";
+    var rejectedLeaveRequests = ViewData["RejectedLeaveRequests"]?.ToString() ?? "0";
 }
 
 @section Styles {
@@ -34,59 +43,68 @@
                         <th>Type</th>
                         <th>Dates</th>
                         <th>Days</th>
+                        <th>Reason</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Request row -->
-                    <tr>
-                        <td>--</td>
-                        <td>Employee Name<br />EMP---</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="leave-status-badge pending-status">Pending</span>
-                        </td>
-                        <td>
-                            <div class="leave-action-group">
-                                <a href="#" class="leave-action-button approve-button">Approve</a>
-                                <a href="#" class="leave-action-button reject-button">Reject</a>
-                            </div>
-                        </td>
-                    </tr>
+                    @if (adminLeaveRequests.Length == 0)
+                    {
+                        <!-- Empty state row -->
+                        <tr>
+                            <td colspan="7">No leave requests found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var leaveRequest in adminLeaveRequests)
+                        {
+                            var requestId = leaveRequest[0];
+                            var employeeName = leaveRequest[1];
+                            var employeeCode = leaveRequest[2];
+                            var leaveType = leaveRequest[3];
+                            var leaveDates = leaveRequest[4];
+                            var leaveDays = leaveRequest[5];
+                            var leaveReason = leaveRequest[6];
+                            var leaveStatus = leaveRequest[7];
+                            var leaveRequestId = leaveRequest[8];
 
-                    <!-- Request row -->
-                    <tr>
-                        <td>--</td>
-                        <td>Employee Name<br />EMP---</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="leave-status-badge pending-status">Pending</span>
-                        </td>
-                        <td>
-                            <div class="leave-action-group">
-                                <a href="#" class="leave-action-button approve-button">Approve</a>
-                                <a href="#" class="leave-action-button reject-button">Reject</a>
-                            </div>
-                        </td>
-                    </tr>
+                            var statusClass = leaveStatus == "Approved"
+                            ? "approved-status"
+                            : leaveStatus == "Rejected" || leaveStatus == "Declined"
+                            ? "rejected-status"
+                            : "pending-status";
 
-                    <!-- Request row -->
-                    <tr>
-                        <td>--</td>
-                        <td>Employee Name<br />EMP---</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="leave-status-badge approved-status">Approved</span>
-                        </td>
-                        <td></td>
-                    </tr>
+                            <tr>
+                                <td>@requestId</td>
+                                <td>@employeeName<br />@employeeCode</td>
+                                <td>@leaveType</td>
+                                <td>@leaveDates</td>
+                                <td>@leaveDays</td>
+                                <td>@leaveReason</td>
+                                <td>
+                                    <span class="leave-status-badge @statusClass">@leaveStatus</span>
+                                </td>
+                                <td>
+                                    @if (leaveStatus == "Pending")
+                                    {
+                                        <div class="leave-action-group">
+                                            <form method="post" asp-controller="Admin" asp-action="ApproveLeave">
+                                                <input type="hidden" name="leaveRequestId" value="@leaveRequestId" />
+                                                <button type="submit" class="leave-action-button approve-button">Approve</button>
+                                            </form>
+
+                                            <form method="post" asp-controller="Admin" asp-action="RejectLeave">
+                                                <input type="hidden" name="leaveRequestId" value="@leaveRequestId" />
+                                                <button type="submit" class="leave-action-button reject-button">Reject</button>
+                                            </form>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -105,25 +123,25 @@
             <!-- Snapshot card -->
             <article class="report-stat-card">
                 <h3>Total Requests</h3>
-                <div class="report-stat-value">--</div>
+                <div class="report-stat-value">@totalLeaveRequests</div>
             </article>
 
             <!-- Snapshot card -->
             <article class="report-stat-card">
                 <h3>Approved</h3>
-                <div class="report-stat-value approved-value">--</div>
+                <div class="report-stat-value approved-value">@approvedLeaveRequests</div>
             </article>
 
             <!-- Snapshot card -->
             <article class="report-stat-card">
                 <h3>Pending</h3>
-                <div class="report-stat-value pending-value">--</div>
+                <div class="report-stat-value pending-value">@pendingLeaveRequests</div>
             </article>
 
             <!-- Snapshot card -->
             <article class="report-stat-card">
                 <h3>Rejected</h3>
-                <div class="report-stat-value rejected-value">--</div>
+                <div class="report-stat-value rejected-value">@rejectedLeaveRequests</div>
             </article>
         </div>
     </section>

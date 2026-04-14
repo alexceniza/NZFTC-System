@@ -115,6 +115,12 @@
     color: #2f9a47;
 }
 
+.rejected-status {
+    background-color: #f2cccc;
+    border: 1px solid #d86b6b;
+    color: #c43f3f;
+}
+
 /* Action group */
 .leave-action-group {
     display: flex;

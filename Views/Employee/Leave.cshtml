@@ -1,11 +1,39 @@
 ﻿@{
     ViewData["Title"] = "Employee Leave";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    // Loads the logged-in employee leave history rows.
+    var employeeLeaveRequests = ViewData["EmployeeLeaveRequests"] as string[][] ?? Array.Empty<string[]>();
+
+    // Tracks whether the leave request modal should reopen after a form result.
+    var hasLeaveFeedback = TempData["LeaveError"] != null || TempData["LeaveSuccess"] != null;
 }
 
 @section Styles {
     <!-- Employee leave CSS -->
     <link rel="stylesheet" href="~/css/employee-leave.css" asp-append-version="true" />
+
+    <style>
+        /* Leave form feedback */
+        .leave-form-feedback {
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .leave-form-error {
+            background: #fff1f1;
+            border: 1px solid #f1b7b7;
+            color: #9f2f2f;
+        }
+
+        .leave-form-success {
+            background: #f2fff4;
+            border: 1px solid #b8e0bf;
+            color: #23663a;
+        }
+    </style>
 }
 
 <!-- Leave page -->
@@ -47,31 +75,44 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Placeholder row -->
-                    <tr>
-                        <td>LV-001</td>
-                        <td>Annual Leave</td>
-                        <td>12/04/2026</td>
-                        <td>14/04/2026</td>
-                        <td>3</td>
-                        <td>
-                            <span class="status-badge pending-status">Pending</span>
-                        </td>
-                        <td>Family trip</td>
-                    </tr>
+                    @if (employeeLeaveRequests.Length == 0)
+                    {
+                        <!-- Empty state row -->
+                        <tr>
+                            <td colspan="7">No leave requests found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var leaveRequest in employeeLeaveRequests)
+                        {
+                            var requestId = leaveRequest[0];
+                            var leaveType = leaveRequest[1];
+                            var startDate = leaveRequest[2];
+                            var endDate = leaveRequest[3];
+                            var leaveDays = leaveRequest[4];
+                            var leaveStatus = leaveRequest[5];
+                            var leaveReason = leaveRequest[6];
 
-                    <!-- Placeholder row -->
-                    <tr>
-                        <td>LV-002</td>
-                        <td>Sick Leave</td>
-                        <td>22/03/2026</td>
-                        <td>22/03/2026</td>
-                        <td>1</td>
-                        <td>
-                            <span class="status-badge approved-status">Approved</span>
-                        </td>
-                        <td>Medical appointment</td>
-                    </tr>
+                            var statusClass = leaveStatus == "Approved"
+                            ? "approved-status"
+                            : leaveStatus == "Rejected"
+                            ? "rejected-status"
+                            : "pending-status";
+
+                            <tr>
+                                <td>@requestId</td>
+                                <td>@leaveType</td>
+                                <td>@startDate</td>
+                                <td>@endDate</td>
+                                <td>@leaveDays</td>
+                                <td>
+                                    <span class="status-badge @statusClass">@leaveStatus</span>
+                                </td>
+                                <td>@leaveReason</td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -92,17 +133,33 @@
             <p>Submit a new leave request for approval</p>
         </div>
 
+        @if (TempData["LeaveError"] != null)
+        {
+            <!-- Leave form error -->
+            <div class="leave-form-feedback leave-form-error">
+                @TempData["LeaveError"]
+            </div>
+        }
+
+        @if (TempData["LeaveSuccess"] != null)
+        {
+            <!-- Leave form success -->
+            <div class="leave-form-feedback leave-form-success">
+                @TempData["LeaveSuccess"]
+            </div>
+        }
+
         <!-- Modal form -->
-        <form class="leave-modal-form" id="leaveRequestForm">
+        <form class="leave-modal-form" id="leaveRequestForm" method="post" asp-controller="Employee" asp-action="SubmitLeave">
             <!-- Leave type -->
             <div class="leave-form-group">
                 <label for="leaveType">Leave Type</label>
-                <select id="leaveType" name="leaveType">
-                    <option value="">Annual Leave</option>
-                    <option value="annual">Annual Leave</option>
-                    <option value="sick">Sick Leave</option>
-                    <option value="bereavement">Bereavement Leave</option>
-                    <option value="unpaid">Unpaid Leave</option>
+                <select id="leaveType" name="leaveType" required>
+                    <option value="">Select leave type</option>
+                    <option value="Annual Leave">Annual Leave</option>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Bereavement Leave">Bereavement Leave</option>
+                    <option value="Unpaid Leave">Unpaid Leave</option>
                 </select>
             </div>
 
@@ -110,12 +167,12 @@
             <div class="leave-form-row">
                 <div class="leave-form-group">
                     <label for="startDate">Start Date</label>
-                    <input type="text" id="startDate" name="startDate" placeholder="dd/mm/yyyy" />
+                    <input type="date" id="startDate" name="startDate" required />
                 </div>
 
                 <div class="leave-form-group">
                     <label for="endDate">End Date</label>
-                    <input type="text" id="endDate" name="endDate" placeholder="dd/mm/yyyy" />
+                    <input type="date" id="endDate" name="endDate" required />
                 </div>
             </div>
 
@@ -140,14 +197,31 @@
         const openLeaveModal = document.getElementById("openLeaveModal");
         const closeLeaveModal = document.getElementById("closeLeaveModal");
         const cancelLeaveModal = document.getElementById("cancelLeaveModal");
-        const leaveRequestForm = document.getElementById("leaveRequestForm");
+        const leaveFeedbackMessages = document.querySelectorAll(".leave-form-feedback");
 
+        // Hides any leave feedback messages after the initial postback display.
+        function hideLeaveFeedbackMessages() {
+            leaveFeedbackMessages.forEach(function (message) {
+                message.style.display = "none";
+            });
+        }
+
+        // Opens the leave request modal.
         function showLeaveModal() {
+            hideLeaveFeedbackMessages();
             leaveModal.classList.add("show");
             document.body.classList.add("leave-modal-open");
         }
 
+        // Opens the leave request modal with feedback still visible after submit.
+        function showLeaveModalWithFeedback() {
+            leaveModal.classList.add("show");
+            document.body.classList.add("leave-modal-open");
+        }
+
+        // Closes the leave request modal.
         function hideLeaveModal() {
+            hideLeaveFeedbackMessages();
             leaveModal.classList.remove("show");
             document.body.classList.remove("leave-modal-open");
         }
@@ -156,23 +230,25 @@
         closeLeaveModal.addEventListener("click", hideLeaveModal);
         cancelLeaveModal.addEventListener("click", hideLeaveModal);
 
+        // Closes the leave request modal when the overlay is clicked.
         leaveModal.addEventListener("click", function (event) {
             if (event.target === leaveModal) {
                 hideLeaveModal();
             }
         });
 
+        // Reopens the leave request modal when the form returns an error or success message.
+        const hasLeaveFeedback = @hasLeaveFeedback.ToString().ToLower();
+
+        if (hasLeaveFeedback) {
+            showLeaveModalWithFeedback();
+        }
+
+        // Closes the leave request modal when Escape is pressed.
         document.addEventListener("keydown", function (event) {
             if (event.key === "Escape" && leaveModal.classList.contains("show")) {
                 hideLeaveModal();
             }
-        });
-
-        leaveRequestForm.addEventListener("submit", function (event) {
-            event.preventDefault();
-
-            // Stub for future leave request function
-            console.log("Submit Request clicked");
         });
     </script>
 }
