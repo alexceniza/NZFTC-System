@@ -1,16 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using NZFTC_Portal.Interfaces;
-using NZFTC_Portal.ViewModels;
+using NZFTC_Portal.Models;
+using System.Linq;
 
 namespace NZFTC_Portal.Controllers
 {
     public class AdminLeaveController : Controller
     {
-        private readonly ILeaveService _leaveService;
+        private readonly AppDbContext _context;
 
-        public AdminLeaveController(ILeaveService leaveService)
+        public AdminLeaveController(AppDbContext context)
         {
-            _leaveService = leaveService;
+            _context = context;
         }
 
         private bool IsAdmin()
@@ -24,78 +24,108 @@ namespace NZFTC_Portal.Controllers
             var fullName = HttpContext.Session.GetString("FullName") ?? "Admin";
             var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
 
-            ViewData["PortalUserName"] = $"{fullName} - ADM{userId}";
+            var adminCode = _context.Admins
+                .Where(a => a.UserId == userId)
+                .Select(a => a.AdminCode)
+                .FirstOrDefault() ?? $"ADM{userId}";
+
+            ViewData["PortalUserName"] = $"{fullName} - {adminCode}";
             ViewData["PortalRole"] = "Admin";
             ViewData["ActiveTab"] = activeTab;
             ViewData["PortalNavItems"] = new[] { "Dashboard", "Leave", "Payroll", "Employees", "Cases" };
         }
 
         [HttpGet]
-        public async Task<IActionResult> Pending()
+        public IActionResult Pending()
         {
             if (!IsAdmin())
                 return RedirectToAction("Login", "Account");
 
             SetAdminViewData("Leave");
 
-            var pendingRequests = await _leaveService.GetPendingLeaveRequestsAsync();
+            // Loads all leave requests for the admin review table.
+            var allLeaveRequests = _context.LeaveRequests
+                .Join(
+                    _context.Employees,
+                    request => request.EmployeeId,
+                    employee => employee.UserId,
+                    (request, employee) => new { request, employee })
+                .Join(
+                    _context.Users,
+                    combined => combined.employee.UserId,
+                    user => user.UserId,
+                    (combined, user) => new
+                    {
+                        combined.request.LeaveRequestId,
+                        combined.request.LeaveType,
+                        combined.request.StartDate,
+                        combined.request.EndDate,
+                        combined.request.Reason,
+                        combined.request.Status,
+                        EmployeeName = user.FullName,
+                        EmployeeCode = combined.employee.EmployeeCode
+                    })
+                .OrderByDescending(r => r.LeaveRequestId)
+                .AsEnumerable()
+                .Select(r => new[]
+                {
+                    $"LV-{r.LeaveRequestId:D3}",
+                    r.EmployeeName,
+                    r.EmployeeCode,
+                    r.LeaveType,
+                    $"{r.StartDate:dd/MM/yyyy} - {r.EndDate:dd/MM/yyyy}",
+                    ((r.EndDate.DayNumber - r.StartDate.DayNumber) + 1).ToString(),
+                    string.IsNullOrWhiteSpace(r.Reason) ? "--" : r.Reason,
+                    r.Status,
+                    r.LeaveRequestId.ToString()
+                })
+                .ToArray();
 
-            var model = pendingRequests.Select(lr => new AdminRecentLeaveRequestViewModel
-            {
-                LeaveRequestId = lr.LeaveRequestId,
-                EmployeeName = lr.Employee != null && lr.Employee.User != null
-                    ? lr.Employee.User.FullName
-                    : "Unknown Employee",
-                LeaveType = lr.LeaveType,
-                StartDate = lr.StartDate,
-                EndDate = lr.EndDate,
-                Status = lr.Status
-            }).ToList();
+            ViewData["AdminLeaveRequests"] = allLeaveRequests;
 
-            return View("~/Views/Admin/Leave.cshtml", model);
+            // Loads simple reporting counts for the admin leave report section.
+            ViewData["TotalLeaveRequests"] = _context.LeaveRequests.Count().ToString();
+            ViewData["ApprovedLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Approved").ToString();
+            ViewData["PendingLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Pending").ToString();
+            ViewData["RejectedLeaveRequests"] = _context.LeaveRequests.Count(r => r.Status == "Rejected").ToString();
+
+            return View("~/Views/Admin/Leave.cshtml");
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Decide(AdminLeaveDecisionViewModel model)
+        public IActionResult ApproveLeave(int leaveRequestId)
         {
             if (!IsAdmin())
                 return RedirectToAction("Login", "Account");
 
-            if (!ModelState.IsValid)
-            {
-                TempData["ErrorMessage"] = "Invalid leave action.";
-                return RedirectToAction(nameof(Pending));
-            }
+            var leaveRequest = _context.LeaveRequests.FirstOrDefault(r => r.LeaveRequestId == leaveRequestId);
+            if (leaveRequest == null)
+                return RedirectToAction("Pending");
 
-            int adminId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            if (adminId == 0)
-                return RedirectToAction("Login", "Account");
+            leaveRequest.Status = "Approved";
+            leaveRequest.AdminId = HttpContext.Session.GetInt32("UserId");
 
-            bool updated = await _leaveService.ApproveOrDeclineAsync(
-                model.LeaveRequestId,
-                adminId,
-                model.Decision
-            );
+            _context.SaveChanges();
 
-            TempData[updated ? "SuccessMessage" : "ErrorMessage"] =
-                updated
-                    ? $"Leave request {model.Decision.ToLower()} successfully."
-                    : "Unable to update leave request.";
-
-            return RedirectToAction(nameof(Pending));
+            return RedirectToAction("Pending");
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Report(AdminLeaveReportFilterViewModel filter)
+        [HttpPost]
+        public IActionResult RejectLeave(int leaveRequestId)
         {
             if (!IsAdmin())
                 return RedirectToAction("Login", "Account");
 
-            SetAdminViewData("Leave");
+            var leaveRequest = _context.LeaveRequests.FirstOrDefault(r => r.LeaveRequestId == leaveRequestId);
+            if (leaveRequest == null)
+                return RedirectToAction("Pending");
 
-            var model = await _leaveService.GetAdminLeaveReportAsync(filter);
-            return View(model);
+            leaveRequest.Status = "Rejected";
+            leaveRequest.AdminId = HttpContext.Session.GetInt32("UserId");
+
+            _context.SaveChanges();
+
+            return RedirectToAction("Pending");
         }
     }
 }

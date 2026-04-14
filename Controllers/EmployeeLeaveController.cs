@@ -1,16 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using NZFTC_Portal.Interfaces;
-using NZFTC_Portal.ViewModels;
+using NZFTC_Portal.Models;
+using System.Linq;
 
 namespace NZFTC_Portal.Controllers
 {
     public class EmployeeLeaveController : Controller
     {
-        private readonly ILeaveService _leaveService;
+        private readonly AppDbContext _context;
 
-        public EmployeeLeaveController(ILeaveService leaveService)
+        public EmployeeLeaveController(AppDbContext context)
         {
-            _leaveService = leaveService;
+            _context = context;
         }
 
         private bool IsEmployee()
@@ -30,67 +30,112 @@ namespace NZFTC_Portal.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
 
             SetEmployeeViewData("Leave");
 
-            int employeeId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            if (employeeId == 0)
-                return RedirectToAction("Login", "Account");
+            int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
 
-            var leaveRequests = await _leaveService.GetEmployeeLeaveRequestsAsync(employeeId);
-            return View("~/Views/Employee/Leave.cshtml", leaveRequests);
+            //Loads the logged-in employee leave history.
+            var employeeLeaveRequests = _context.LeaveRequests
+                .Where(r => r.EmployeeId == userId)
+                .OrderByDescending(r => r.LeaveRequestId)
+                .AsEnumerable()
+                .Select(r => new[]
+                {
+                    $"LV-{r.LeaveRequestId:D3}",
+                    r.LeaveType,
+                    r.StartDate.ToString("dd/MM/yyyy"),
+                    r.EndDate.ToString("dd/MM/yyyy"),
+                    ((r.EndDate.DayNumber - r.StartDate.DayNumber) + 1).ToString(),
+                    r.Status,
+                    string.IsNullOrWhiteSpace(r.Reason) ? "--" : r.Reason
+                })
+                .ToArray();
+
+            ViewData["EmployeeLeaveRequests"] = employeeLeaveRequests;
+
+            return View("~/Views/Employee/Leave.cshtml");
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(LeaveRequestCreateViewModel model)
+        public IActionResult SubmitLeave(string leaveType, DateOnly startDate, DateOnly endDate, string leaveReason)
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
 
-            int employeeId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            if (employeeId == 0)
-                return RedirectToAction("Login", "Account");
+            int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
 
-            if (!ModelState.IsValid)
+            //Checks that the logged-in employee exists before creating the leave request.
+            var employee = _context.Employees.FirstOrDefault(e => e.UserId == userId);
+            if (employee == null)
             {
-                SetEmployeeViewData("Leave");
-                var leaveRequests = await _leaveService.GetEmployeeLeaveRequestsAsync(employeeId);
-                TempData["ErrorMessage"] = "Please complete all required fields correctly.";
-                return View("~/Views/Employee/Leave.cshtml", leaveRequests);
+                TempData["LeaveError"] = "Employee account not found.";
+                return RedirectToAction("Index");
             }
 
-            try
+            //Basic validation for leave submission.
+            if (string.IsNullOrWhiteSpace(leaveType))
             {
-                await _leaveService.SubmitLeaveRequestAsync(employeeId, model);
-                TempData["SuccessMessage"] = "Leave request submitted successfully.";
-                return RedirectToAction(nameof(Index));
+                TempData["LeaveError"] = "Please select a leave type.";
+                return RedirectToAction("Index");
             }
-            catch (Exception ex)
+
+            if (endDate < startDate)
             {
-                SetEmployeeViewData("Leave");
-                var leaveRequests = await _leaveService.GetEmployeeLeaveRequestsAsync(employeeId);
-                TempData["ErrorMessage"] = ex.Message;
-                return View("~/Views/Employee/Leave.cshtml", leaveRequests);
+                TempData["LeaveError"] = "End date cannot be earlier than start date.";
+                return RedirectToAction("Index");
             }
-        }
 
-        [HttpGet]
-        public async Task<IActionResult> Balance()
-        {
-            if (!IsEmployee())
-                return RedirectToAction("Login", "Account");
+            var cleanedLeaveType = leaveType.Trim();
+            var cleanedLeaveReason = string.IsNullOrWhiteSpace(leaveReason) ? null : leaveReason.Trim();
 
-            int employeeId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            if (employeeId == 0)
-                return RedirectToAction("Login", "Account");
+            //Prevents the exact same leave request from being submitted twice.
+            var duplicateLeaveRequest = _context.LeaveRequests.Any(r =>
+                r.EmployeeId == employee.UserId &&
+                r.LeaveType == cleanedLeaveType &&
+                r.StartDate == startDate &&
+                r.EndDate == endDate &&
+                r.Status != "Rejected");
 
-            var balance = await _leaveService.GetEmployeeLeaveBalanceAsync(employeeId);
-            return Ok(balance);
+            if (duplicateLeaveRequest)
+            {
+                TempData["LeaveError"] = "This leave request has already been submitted.";
+                return RedirectToAction("Index");
+            }
+
+            //Prevents overlapping leave dates against existing pending or approved requests.
+            var overlappingLeaveRequest = _context.LeaveRequests.Any(r =>
+                r.EmployeeId == employee.UserId &&
+                r.Status != "Rejected" &&
+                startDate <= r.EndDate &&
+                endDate >= r.StartDate);
+
+            if (overlappingLeaveRequest)
+            {
+                TempData["LeaveError"] = "These dates overlap with an existing leave request.";
+                return RedirectToAction("Index");
+            }
+
+            var newLeaveRequest = new LeaveRequest
+            {
+                EmployeeId = employee.UserId,
+                AdminId = null,
+                LeaveType = cleanedLeaveType,
+                StartDate = startDate,
+                EndDate = endDate,
+                Reason = cleanedLeaveReason,
+                Status = "Pending"
+            };
+
+            _context.LeaveRequests.Add(newLeaveRequest);
+            _context.SaveChanges();
+
+            TempData["LeaveSuccess"] = "Leave request submitted successfully.";
+            return RedirectToAction("Index");
         }
     }
 }

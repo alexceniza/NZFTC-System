@@ -101,114 +101,29 @@ namespace NZFTC_Portal.Controllers
             return View(model);
         }
 
-        // Employee leave page
+        // Redirects employee leave route to the split leave controller.
         public IActionResult Leave()
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
 
-            SetEmployeeViewData("Leave");
-
-            int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
-
-            // Loads the logged-in employee leave history.
-            var employeeLeaveRequests = _context.LeaveRequests
-                .Where(r => r.EmployeeId == userId)
-                .OrderByDescending(r => r.LeaveRequestId)
-                .AsEnumerable()
-                .Select(r => new[]
-                {
-                    $"LV-{r.LeaveRequestId:D3}",
-                    r.LeaveType,
-                    r.StartDate.ToString("dd/MM/yyyy"),
-                    r.EndDate.ToString("dd/MM/yyyy"),
-                    ((r.EndDate.DayNumber - r.StartDate.DayNumber) + 1).ToString(),
-                    r.Status,
-                    string.IsNullOrWhiteSpace(r.Reason) ? "--" : r.Reason
-                })
-                .ToArray();
-
-            ViewData["EmployeeLeaveRequests"] = employeeLeaveRequests;
-
-            return View();
+            return RedirectToAction("Index", "EmployeeLeave");
         }
 
-        // Employee leave submission
+        // Redirects employee leave submit route to the split leave controller.
         [HttpPost]
         public IActionResult SubmitLeave(string leaveType, DateOnly startDate, DateOnly endDate, string leaveReason)
         {
             if (!IsEmployee())
                 return RedirectToAction("Login", "Account");
 
-            int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
-
-            // Checks that the logged-in employee exists before creating the leave request.
-            var employee = _context.Employees.FirstOrDefault(e => e.UserId == userId);
-            if (employee == null)
+            return RedirectToAction("SubmitLeave", "EmployeeLeave", new
             {
-                TempData["LeaveError"] = "Employee account not found.";
-                return RedirectToAction("Leave");
-            }
-
-            // Basic validation for leave submission.
-            if (string.IsNullOrWhiteSpace(leaveType))
-            {
-                TempData["LeaveError"] = "Please select a leave type.";
-                return RedirectToAction("Leave");
-            }
-
-            if (endDate < startDate)
-            {
-                TempData["LeaveError"] = "End date cannot be earlier than start date.";
-                return RedirectToAction("Leave");
-            }
-
-            var cleanedLeaveType = leaveType.Trim();
-            var cleanedLeaveReason = string.IsNullOrWhiteSpace(leaveReason) ? null : leaveReason.Trim();
-
-            // Prevents the exact same leave request from being submitted twice.
-            var duplicateLeaveRequest = _context.LeaveRequests.Any(r =>
-                r.EmployeeId == employee.UserId &&
-                r.LeaveType == cleanedLeaveType &&
-                r.StartDate == startDate &&
-                r.EndDate == endDate &&
-                r.Status != "Rejected");
-
-            if (duplicateLeaveRequest)
-            {
-                TempData["LeaveError"] = "This leave request has already been submitted.";
-                return RedirectToAction("Leave");
-            }
-
-            // Prevents overlapping leave dates against existing pending or approved requests.
-            var overlappingLeaveRequest = _context.LeaveRequests.Any(r =>
-                r.EmployeeId == employee.UserId &&
-                r.Status != "Rejected" &&
-                startDate <= r.EndDate &&
-                endDate >= r.StartDate);
-
-            if (overlappingLeaveRequest)
-            {
-                TempData["LeaveError"] = "These dates overlap with an existing leave request.";
-                return RedirectToAction("Leave");
-            }
-
-            var newLeaveRequest = new LeaveRequest
-            {
-                EmployeeId = employee.UserId,
-                AdminId = null,
-                LeaveType = cleanedLeaveType,
-                StartDate = startDate,
-                EndDate = endDate,
-                Reason = cleanedLeaveReason,
-                Status = "Pending"
-            };
-
-            _context.LeaveRequests.Add(newLeaveRequest);
-            _context.SaveChanges();
-
-            TempData["LeaveSuccess"] = "Leave request submitted successfully.";
-            return RedirectToAction("Leave");
+                leaveType,
+                startDate,
+                endDate,
+                leaveReason
+            });
         }
 
         // Employee payroll page

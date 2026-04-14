@@ -53,7 +53,7 @@
                     {
                         <!-- Empty state row -->
                         <tr>
-                            <td colspan="7">No leave requests found.</td>
+                            <td colspan="8">No leave requests found.</td>
                         </tr>
                     }
                     else
@@ -90,12 +90,12 @@
                                     @if (leaveStatus == "Pending")
                                     {
                                         <div class="leave-action-group">
-                                            <form method="post" asp-controller="Admin" asp-action="ApproveLeave">
+                                            <form method="post" asp-controller="AdminLeave" asp-action="ApproveLeave">
                                                 <input type="hidden" name="leaveRequestId" value="@leaveRequestId" />
                                                 <button type="submit" class="leave-action-button approve-button">Approve</button>
                                             </form>
 
-                                            <form method="post" asp-controller="Admin" asp-action="RejectLeave">
+                                            <form method="post" asp-controller="AdminLeave" asp-action="RejectLeave">
                                                 <input type="hidden" name="leaveRequestId" value="@leaveRequestId" />
                                                 <button type="submit" class="leave-action-button reject-button">Reject</button>
                                             </form>
