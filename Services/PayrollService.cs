@@ -63,6 +63,17 @@ namespace NZFTC_Portal.Services
                 return false;
             }
 
+            var payDate = DateOnly.FromDateTime(model.PayDate);
+
+            // Prevents duplicate payroll records for the same employee and pay date.
+            var duplicateExists = await _context.PayrollRecords
+                .AnyAsync(p => p.EmployeeId == model.EmployeeId && p.PayDate == payDate);
+
+            if (duplicateExists)
+            {
+                return false;
+            }
+
             decimal taxAmount = model.BaseSalary * model.TaxRate;
             decimal netPay = model.BaseSalary - taxAmount - model.Deductions;
 
@@ -74,13 +85,14 @@ namespace NZFTC_Portal.Services
                 TaxRate = model.TaxRate,
                 Deductions = model.Deductions,
                 NetPay = netPay,
-                PayDate = DateOnly.FromDateTime(model.PayDate)
+                PayDate = payDate
             };
 
             _context.PayrollRecords.Add(payroll);
             await _context.SaveChangesAsync();
             return true;
         }
+
         public async Task<LatestPayslipViewModel?> GetLatestPayslipAsync(int employeeId)
         {
             var latestPayroll = await _context.PayrollRecords

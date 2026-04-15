@@ -8,6 +8,9 @@ namespace NZFTC_Portal.ViewModels
         public int EmployeeId { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
         public string EmployeeCode { get; set; } = string.Empty;
+        public string EmployeeEmail { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Position { get; set; } = string.Empty;
         public string CaseType { get; set; } = string.Empty;
         public DateOnly SubmittedDate { get; set; }
         public string Subject { get; set; } = string.Empty;

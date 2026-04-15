@@ -1,24 +1,99 @@
-﻿@{
+﻿@model List<NZFTC_Portal.ViewModels.AdminPayrollViewModel>
+
+@{
     ViewData["Title"] = "Payroll Management";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    var payrollRecords = Model ?? new List<NZFTC_Portal.ViewModels.AdminPayrollViewModel>();
+
+    var totalEmployees = payrollRecords
+        .Select(p => p.EmployeeId)
+        .Distinct()
+        .Count();
+
+    var totalBasicSalary = payrollRecords.Sum(p => p.BaseSalary);
+    var totalDeductions = payrollRecords.Sum(p => p.Deductions);
+    var totalNetPay = payrollRecords.Sum(p => p.NetPay);
+
+    var employeeOptions = payrollRecords
+        .GroupBy(p => new { p.EmployeeId, p.EmployeeName, p.EmployeeCode })
+        .Select(g => g.Key)
+        .OrderBy(x => x.EmployeeCode)
+        .ToList();
+
+    var hasPayrollFeedback =
+        TempData["ErrorMessage"] != null ||
+        TempData["SuccessMessage"] != null;
 }
 
 @section Styles {
-    <!-- Admin payroll CSS -->
     <link rel="stylesheet" href="~/css/admin-payroll.css" asp-append-version="true" />
+
+    <style>
+        .payroll-form-feedback {
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .payroll-form-error {
+            background: #fff1f1;
+            border: 1px solid #f1b7b7;
+            color: #9f2f2f;
+        }
+
+        .payroll-form-success {
+            background: #f2fff4;
+            border: 1px solid #b8e0bf;
+            color: #23663a;
+        }
+
+        .payslip-preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 16px;
+        }
+
+        .payslip-preview-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+            .payslip-preview-field label {
+                font-size: 14px;
+                color: #444444;
+            }
+
+            .payslip-preview-field input {
+                height: 40px;
+                border: 1px solid #d8d8d8;
+                border-radius: 8px;
+                padding: 0 12px;
+                background: #f8f8f8;
+                color: #222222;
+            }
+
+            .payslip-preview-field.full-width {
+                grid-column: 1 / -1;
+            }
+
+        @@media (max-width: 700px) {
+            .payslip-preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 }
 
-<!-- Admin payroll page -->
 <section class="admin-payroll-page">
-    <!-- Page heading -->
     <div class="admin-payroll-heading">
         <h1>Payroll Management</h1>
         <p>Manage payroll records and generate payslips</p>
     </div>
 
-    <!-- Payroll records card -->
     <section class="admin-payroll-card">
-        <!-- Card top row -->
         <div class="admin-payroll-card-top">
             <div class="admin-payroll-card-heading">
                 <h2>Payroll Records</h2>
@@ -30,122 +105,79 @@
             </div>
         </div>
 
-        <!-- Payroll record list -->
         <div class="payroll-record-list">
-            <!-- Record row -->
-            <div class="payroll-record-row">
-                <div class="payroll-record-top">
-                    <div class="payroll-record-identity">
-                        <h3>--</h3>
-                        <p>--</p>
-                    </div>
-
-                    <div class="payroll-record-actions">
-                        <span class="payroll-status-badge active-status">Active</span>
-                        <button type="button" class="generate-button">Generate</button>
+            @if (!payrollRecords.Any())
+            {
+                <div class="payroll-record-row">
+                    <div class="payroll-record-top">
+                        <div class="payroll-record-identity">
+                            <h3>No payroll records found</h3>
+                            <p>Create the first payroll record to begin tracking payslips.</p>
+                        </div>
                     </div>
                 </div>
+            }
+            else
+            {
+                @foreach (var payroll in payrollRecords)
+                {
+                    var payDateText = payroll.PayDate.ToString("dd/MM/yyyy");
+                    var payDateValue = payroll.PayDate.ToString("yyyy-MM-dd");
+                    var managedByText = string.IsNullOrWhiteSpace(payroll.ManagedByAdmin)
+                    ? "Managed by admin"
+                    : $"Managed by {payroll.ManagedByAdmin}";
 
-                <div class="payroll-record-stats">
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Basic Salary</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
+                    <div class="payroll-record-row">
+                        <div class="payroll-record-top">
+                            <div class="payroll-record-identity">
+                                <h3>@payroll.EmployeeName</h3>
+                                <p>@payroll.EmployeeCode · @payDateText · @managedByText</p>
+                            </div>
 
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Allowances</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
+                            <div class="payroll-record-actions">
+                                <span class="payroll-status-badge active-status">Active</span>
+                                <button type="button"
+                                        class="generate-button open-view-payslip-modal"
+                                        data-employee-name="@payroll.EmployeeName"
+                                        data-employee-code="@payroll.EmployeeCode"
+                                        data-pay-date="@payDateText"
+                                        data-base-salary="@payroll.BaseSalary.ToString("0.00")"
+                                        data-tax-rate="@((payroll.TaxRate * 100).ToString("0.##"))%"
+                                        data-deductions="@payroll.Deductions.ToString("0.00")"
+                                        data-net-pay="@payroll.NetPay.ToString("0.00")"
+                                        data-managed-by="@managedByText">
+                                    View
+                                </button>
+                            </div>
+                        </div>
 
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Deductions</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
+                        <div class="payroll-record-stats">
+                            <div class="payroll-stat">
+                                <span class="payroll-stat-label">Basic Salary</span>
+                                <span class="payroll-stat-value">@payroll.BaseSalary.ToString("C")</span>
+                            </div>
 
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Net Pay</span>
-                        <span class="payroll-stat-value net-pay-value">--</span>
-                    </div>
-                </div>
-            </div>
+                            <div class="payroll-stat">
+                                <span class="payroll-stat-label">Tax Rate</span>
+                                <span class="payroll-stat-value">@((payroll.TaxRate * 100).ToString("0.##"))%</span>
+                            </div>
 
-            <!-- Record row -->
-            <div class="payroll-record-row">
-                <div class="payroll-record-top">
-                    <div class="payroll-record-identity">
-                        <h3>--</h3>
-                        <p>--</p>
-                    </div>
+                            <div class="payroll-stat">
+                                <span class="payroll-stat-label">Deductions</span>
+                                <span class="payroll-stat-value">@payroll.Deductions.ToString("C")</span>
+                            </div>
 
-                    <div class="payroll-record-actions">
-                        <span class="payroll-status-badge active-status">Active</span>
-                        <button type="button" class="generate-button">Generate</button>
+                            <div class="payroll-stat">
+                                <span class="payroll-stat-label">Net Pay</span>
+                                <span class="payroll-stat-value net-pay-value">@payroll.NetPay.ToString("C")</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="payroll-record-stats">
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Basic Salary</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Allowances</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Deductions</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Net Pay</span>
-                        <span class="payroll-stat-value net-pay-value">--</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Record row -->
-            <div class="payroll-record-row">
-                <div class="payroll-record-top">
-                    <div class="payroll-record-identity">
-                        <h3>--</h3>
-                        <p>--</p>
-                    </div>
-
-                    <div class="payroll-record-actions">
-                        <span class="payroll-status-badge active-status">Active</span>
-                        <button type="button" class="generate-button">Generate</button>
-                    </div>
-                </div>
-
-                <div class="payroll-record-stats">
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Basic Salary</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Allowances</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Deductions</span>
-                        <span class="payroll-stat-value">--</span>
-                    </div>
-
-                    <div class="payroll-stat">
-                        <span class="payroll-stat-label">Net Pay</span>
-                        <span class="payroll-stat-value net-pay-value">--</span>
-                    </div>
-                </div>
-            </div>
+                }
+            }
         </div>
     </section>
 
-    <!-- Payroll summary -->
     <section class="admin-payroll-summary-card">
         <div class="admin-payroll-summary-heading">
             <h2>Payroll Summary</h2>
@@ -155,68 +187,87 @@
         <div class="admin-payroll-summary-grid">
             <div class="summary-stat-card">
                 <h3>Total Employees</h3>
-                <div class="summary-stat-value">--</div>
+                <div class="summary-stat-value">@totalEmployees</div>
             </div>
 
             <div class="summary-stat-card">
                 <h3>Total Basic Salary</h3>
-                <div class="summary-stat-value">--</div>
+                <div class="summary-stat-value">@totalBasicSalary.ToString("C")</div>
             </div>
 
             <div class="summary-stat-card">
                 <h3>Total Deductions</h3>
-                <div class="summary-stat-value deductions-value">--</div>
+                <div class="summary-stat-value deductions-value">@totalDeductions.ToString("C")</div>
             </div>
 
             <div class="summary-stat-card">
                 <h3>Total Net Pay</h3>
-                <div class="summary-stat-value net-summary-value">--</div>
+                <div class="summary-stat-value net-summary-value">@totalNetPay.ToString("C")</div>
             </div>
         </div>
     </section>
 </section>
 
-<!-- Generate payslip modal -->
+<!-- Create payroll modal -->
 <div class="payslip-modal-overlay" id="payslipModal">
     <div class="payslip-modal" role="dialog" aria-modal="true" aria-labelledby="payslipModalTitle">
-        <!-- Modal close -->
         <button type="button" class="payslip-modal-close" id="closePayslipModal" aria-label="Close generate payslip modal">
             x
         </button>
 
-        <!-- Modal heading -->
         <div class="payslip-modal-header">
             <h2 id="payslipModalTitle">Generate Payslip</h2>
             <p>Create a new payslip for an employee</p>
         </div>
 
-        <!-- Modal form -->
-        <form class="payslip-modal-form" id="payslipForm">
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="payroll-form-feedback payroll-form-error server-payroll-feedback">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="payroll-form-feedback payroll-form-success server-payroll-feedback">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <div id="clientPayrollError" class="payroll-form-feedback payroll-form-error" style="display:none;"></div>
+
+        <form class="payslip-modal-form" id="payslipForm" method="post" asp-controller="AdminPayroll" asp-action="Create">
+            @Html.AntiForgeryToken()
+
             <div class="payslip-form-group">
                 <label for="payslipEmployee">Employee</label>
-                <select id="payslipEmployee" name="payslipEmployee">
-                    <option value="">--</option>
+                <select id="payslipEmployee" name="EmployeeId">
+                    <option value="">Select employee</option>
+                    @foreach (var employee in employeeOptions)
+                    {
+                        <option value="@employee.EmployeeId">@employee.EmployeeCode - @employee.EmployeeName</option>
+                    }
                 </select>
             </div>
 
             <div class="payslip-form-group">
-                <label for="payPeriod">Pay Period</label>
-                <input type="text" id="payPeriod" name="payPeriod" placeholder="MM / YYYY" />
+                <label for="payDate">Pay Date</label>
+                <input type="date" id="payDate" name="PayDate" />
             </div>
 
             <div class="payslip-form-group">
                 <label for="basicSalary">Basic Salary (NZD)</label>
-                <input type="text" id="basicSalary" name="basicSalary" placeholder="--" />
+                <input type="number" id="basicSalary" name="BaseSalary" step="0.01" min="0.01" placeholder="0.00" />
             </div>
 
             <div class="payslip-form-group">
-                <label for="allowances">Allowances (NZD)</label>
-                <input type="text" id="allowances" name="allowances" placeholder="--" />
+                <label for="taxRate">Tax Rate</label>
+                <input type="number" id="taxRate" name="TaxRate" step="0.01" min="0" max="1" placeholder="0.28" />
             </div>
 
             <div class="payslip-form-group">
                 <label for="deductions">Deductions (NZD)</label>
-                <input type="text" id="deductions" name="deductions" placeholder="--" />
+                <input type="number" id="deductions" name="Deductions" step="0.01" min="0" placeholder="0.00" />
             </div>
 
             <div class="payslip-modal-actions">
@@ -224,6 +275,66 @@
                 <button type="submit" class="payslip-submit-button">Generate Payslip</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- View payslip modal -->
+<div class="payslip-modal-overlay" id="viewPayslipModal">
+    <div class="payslip-modal" role="dialog" aria-modal="true" aria-labelledby="viewPayslipModalTitle">
+        <button type="button" class="payslip-modal-close" id="closeViewPayslipModal" aria-label="Close payslip preview modal">
+            x
+        </button>
+
+        <div class="payslip-modal-header">
+            <h2 id="viewPayslipModalTitle">Payslip Preview</h2>
+            <p>View the payroll record already generated for this employee</p>
+        </div>
+
+        <div class="payslip-preview-grid">
+            <div class="payslip-preview-field full-width">
+                <label for="viewEmployeeName">Employee</label>
+                <input type="text" id="viewEmployeeName" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewEmployeeCode">Employee Code</label>
+                <input type="text" id="viewEmployeeCode" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewPayDate">Pay Date</label>
+                <input type="text" id="viewPayDate" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewBaseSalary">Basic Salary</label>
+                <input type="text" id="viewBaseSalary" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewTaxRate">Tax Rate</label>
+                <input type="text" id="viewTaxRate" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewDeductions">Deductions</label>
+                <input type="text" id="viewDeductions" readonly />
+            </div>
+
+            <div class="payslip-preview-field">
+                <label for="viewNetPay">Net Pay</label>
+                <input type="text" id="viewNetPay" readonly />
+            </div>
+
+            <div class="payslip-preview-field full-width">
+                <label for="viewManagedBy">Managed By</label>
+                <input type="text" id="viewManagedBy" readonly />
+            </div>
+        </div>
+
+        <div class="payslip-modal-actions">
+            <button type="button" class="payslip-cancel-button" id="cancelViewPayslipModal">Close</button>
+        </div>
     </div>
 </div>
 
@@ -235,17 +346,66 @@
         const cancelPayslipModal = document.getElementById("cancelPayslipModal");
         const payslipForm = document.getElementById("payslipForm");
 
+        const payslipEmployee = document.getElementById("payslipEmployee");
+        const payDate = document.getElementById("payDate");
+        const basicSalary = document.getElementById("basicSalary");
+        const taxRate = document.getElementById("taxRate");
+        const deductions = document.getElementById("deductions");
+        const clientPayrollError = document.getElementById("clientPayrollError");
+
+        const viewPayslipModal = document.getElementById("viewPayslipModal");
+        const closeViewPayslipModal = document.getElementById("closeViewPayslipModal");
+        const cancelViewPayslipModal = document.getElementById("cancelViewPayslipModal");
+        const viewPayslipButtons = document.querySelectorAll(".open-view-payslip-modal");
+
+        const existingPayrollKeys = [
+            @for (int i = 0; i < payrollRecords.Count; i++)
+            {
+                    var payroll = payrollRecords[i];
+                    @Html.Raw($"\"{payroll.EmployeeId}|{payroll.PayDate:yyyy-MM-dd}\"")
+                    if (i < payrollRecords.Count - 1)
+                    {
+                            @Html.Raw(",")
+                    }
+            }
+        ];
+
         function showPayslipModal() {
             payslipModal.classList.add("show");
             document.body.classList.add("payslip-modal-open");
         }
 
+        function clearPayrollFeedback() {
+            const feedbackMessages = payslipModal.querySelectorAll(".payroll-form-feedback");
+            feedbackMessages.forEach(function (message) {
+                message.remove();
+            });
+        }
+
         function hidePayslipModal() {
             payslipModal.classList.remove("show");
             document.body.classList.remove("payslip-modal-open");
+            clearPayrollFeedback();
         }
 
-        openPayslipModal.addEventListener("click", showPayslipModal);
+        function showClientPayrollError(message) {
+            clientPayrollError.style.display = "block";
+            clientPayrollError.textContent = message;
+        }
+
+        function clearClientPayrollError() {
+            if (clientPayrollError) {
+                clientPayrollError.style.display = "none";
+                clientPayrollError.textContent = "";
+            }
+        }
+
+        openPayslipModal.addEventListener("click", function () {
+            clearClientPayrollError();
+            payslipForm.reset();
+            showPayslipModal();
+        });
+
         closePayslipModal.addEventListener("click", hidePayslipModal);
         cancelPayslipModal.addEventListener("click", hidePayslipModal);
 
@@ -255,17 +415,72 @@
             }
         });
 
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape" && payslipModal.classList.contains("show")) {
-                hidePayslipModal();
+        payslipForm.addEventListener("submit", function (event) {
+            clearClientPayrollError();
+
+            const employeeId = payslipEmployee.value;
+            const selectedPayDate = payDate.value;
+            const duplicateKey = `${employeeId}|${selectedPayDate}`;
+
+            if (employeeId && selectedPayDate && existingPayrollKeys.includes(duplicateKey)) {
+                event.preventDefault();
+                showClientPayrollError("A payroll record already exists for this employee on that pay date.");
             }
         });
 
-        payslipForm.addEventListener("submit", function (event) {
-            event.preventDefault();
+        const hasPayrollFeedback = @hasPayrollFeedback.ToString().ToLower();
 
-            // Stub for future payslip generation function
-            console.log("Generate Payslip clicked");
+        if (hasPayrollFeedback) {
+            showPayslipModal();
+        }
+
+        function showViewPayslipModal() {
+            viewPayslipModal.classList.add("show");
+            document.body.classList.add("payslip-modal-open");
+        }
+
+        function hideViewPayslipModal() {
+            viewPayslipModal.classList.remove("show");
+            document.body.classList.remove("payslip-modal-open");
+        }
+
+        function populateViewPayslipModal(button) {
+            document.getElementById("viewEmployeeName").value = button.getAttribute("data-employee-name") || "";
+            document.getElementById("viewEmployeeCode").value = button.getAttribute("data-employee-code") || "";
+            document.getElementById("viewPayDate").value = button.getAttribute("data-pay-date") || "";
+            document.getElementById("viewBaseSalary").value = `$${button.getAttribute("data-base-salary") || "0.00"}`;
+            document.getElementById("viewTaxRate").value = button.getAttribute("data-tax-rate") || "";
+            document.getElementById("viewDeductions").value = `$${button.getAttribute("data-deductions") || "0.00"}`;
+            document.getElementById("viewNetPay").value = `$${button.getAttribute("data-net-pay") || "0.00"}`;
+            document.getElementById("viewManagedBy").value = button.getAttribute("data-managed-by") || "";
+        }
+
+        viewPayslipButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                populateViewPayslipModal(button);
+                showViewPayslipModal();
+            });
+        });
+
+        closeViewPayslipModal.addEventListener("click", hideViewPayslipModal);
+        cancelViewPayslipModal.addEventListener("click", hideViewPayslipModal);
+
+        viewPayslipModal.addEventListener("click", function (event) {
+            if (event.target === viewPayslipModal) {
+                hideViewPayslipModal();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                if (payslipModal.classList.contains("show")) {
+                    hidePayslipModal();
+                }
+
+                if (viewPayslipModal.classList.contains("show")) {
+                    hideViewPayslipModal();
+                }
+            }
         });
     </script>
 }

@@ -95,25 +95,50 @@
 
             <!-- Payslip details -->
             <div class="payslip-details">
-                <div class="payslip-row">
-                    <span>Basic Salary</span>
-                    <span>--</span>
-                </div>
+                @if (Model?.LatestPayslip != null)
+                {
+                    <div class="payslip-row">
+                        <span>Basic Salary</span>
+                        <span>@Model.LatestPayslip.BasicSalary.ToString("C")</span>
+                    </div>
 
-                <div class="payslip-row">
-                    <span>Allowances</span>
-                    <span>--</span>
-                </div>
+                    <div class="payslip-row">
+                        <span>Allowances</span>
+                        <span>@Model.LatestPayslip.Allowances.ToString("C")</span>
+                    </div>
 
-                <div class="payslip-row">
-                    <span>Deductions</span>
-                    <span>--</span>
-                </div>
+                    <div class="payslip-row">
+                        <span>Deductions</span>
+                        <span>@Model.LatestPayslip.Deductions.ToString("C")</span>
+                    </div>
 
-                <div class="payslip-row net-pay-row">
-                    <span>Net Pay</span>
-                    <span>--</span>
-                </div>
+                    <div class="payslip-row net-pay-row">
+                        <span>Net Pay</span>
+                        <span>@Model.LatestPayslip.NetPay.ToString("C")</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="payslip-row">
+                        <span>Basic Salary</span>
+                        <span>--</span>
+                    </div>
+
+                    <div class="payslip-row">
+                        <span>Allowances</span>
+                        <span>--</span>
+                    </div>
+
+                    <div class="payslip-row">
+                        <span>Deductions</span>
+                        <span>--</span>
+                    </div>
+
+                    <div class="payslip-row net-pay-row">
+                        <span>Net Pay</span>
+                        <span>--</span>
+                    </div>
+                }
             </div>
 
             <!-- Card action -->

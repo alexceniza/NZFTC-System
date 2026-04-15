@@ -89,7 +89,10 @@
 .payroll-record-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    max-height: 720px;
+    overflow-y: auto;
+    padding-right: 6px;
 }
 
 /* Record row */

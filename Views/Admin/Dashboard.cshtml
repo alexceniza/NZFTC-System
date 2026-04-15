@@ -1,4 +1,6 @@
-﻿@{
+﻿@model NZFTC_Portal.ViewModels.AdminDashboardViewModel
+
+@{
     ViewData["Title"] = "Admin Dashboard";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
 }
@@ -25,7 +27,7 @@
             </div>
 
             <div class="admin-stat-content">
-                <div class="admin-stat-value">--</div>
+                <div class="admin-stat-value">@Model.PendingLeaveApprovals</div>
 
                 <div class="admin-stat-icon warning-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
@@ -47,7 +49,7 @@
             </div>
 
             <div class="admin-stat-content">
-                <div class="admin-stat-value">--</div>
+                <div class="admin-stat-value">@Model.EmployeeCount</div>
 
                 <div class="admin-stat-icon people-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
@@ -60,7 +62,7 @@
             </div>
 
             <div class="admin-stat-action">
-                <a asp-controller="Admin" asp-action="Employees" class="admin-card-button">Manage employees</a>
+                <a asp-controller="AdminEmployee" asp-action="Index" class="admin-card-button">Manage employees</a>
             </div>
         </section>
 
@@ -71,7 +73,7 @@
             </div>
 
             <div class="admin-stat-content">
-                <div class="admin-stat-value">--</div>
+                <div class="admin-stat-value">@Model.OpenCases</div>
 
                 <div class="admin-stat-icon alert-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
@@ -83,7 +85,7 @@
             </div>
 
             <div class="admin-stat-action">
-                <a asp-controller="Admin" asp-action="Cases" class="admin-card-button">Review cases</a>
+                <a asp-controller="AdminCase" asp-action="Index" class="admin-card-button">Review cases</a>
             </div>
         </section>
     </div>
@@ -96,29 +98,42 @@
         </div>
 
         <div class="admin-request-list">
-            <div class="admin-request-row">
-                <div class="admin-request-text">
-                    <h3>Employee Name</h3>
-                    <p>Leave type · Dates coming soon</p>
-                </div>
+            @if (Model.RecentLeaveRequests == null || !Model.RecentLeaveRequests.Any())
+            {
+                <div class="admin-request-row">
+                    <div class="admin-request-text">
+                        <h3>No recent leave requests</h3>
+                        <p>There are currently no leave requests to review.</p>
+                    </div>
 
-                <div class="admin-request-actions">
-                    <span class="request-status-badge pending-status">Pending</span>
-                    <a asp-controller="Admin" asp-action="Leave" class="review-button">Review</a>
+                    <div class="admin-request-actions">
+                        <a asp-controller="Admin" asp-action="Leave" class="review-button">Review</a>
+                    </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                @foreach (var request in Model.RecentLeaveRequests)
+                {
+                    var statusClass = request.Status == "Approved"
+                    ? "approved-status"
+                    : request.Status == "Rejected"
+                    ? "rejected-status"
+                    : "pending-status";
 
-            <div class="admin-request-row">
-                <div class="admin-request-text">
-                    <h3>Employee Name</h3>
-                    <p>Leave type · Dates coming soon</p>
-                </div>
+                    <div class="admin-request-row">
+                        <div class="admin-request-text">
+                            <h3>@request.EmployeeName</h3>
+                            <p>@request.LeaveType · @request.StartDate.ToString("dd/MM/yyyy") - @request.EndDate.ToString("dd/MM/yyyy")</p>
+                        </div>
 
-                <div class="admin-request-actions">
-                    <span class="request-status-badge pending-status">Pending</span>
-                    <a asp-controller="Admin" asp-action="Leave" class="review-button">Review</a>
-                </div>
-            </div>
+                        <div class="admin-request-actions">
+                            <span class="request-status-badge @statusClass">@request.Status</span>
+                            <a asp-controller="Admin" asp-action="Leave" class="review-button">Review</a>
+                        </div>
+                    </div>
+                }
+            }
         </div>
     </section>
 </section>

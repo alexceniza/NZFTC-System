@@ -101,6 +101,18 @@
     color: #c78600;
 }
 
+.approved-status {
+    background-color: #c8efd2;
+    border: 1px solid #64b977;
+    color: #2f9a47;
+}
+
+.rejected-status {
+    background-color: #f2cccc;
+    border: 1px solid #d86b6b;
+    color: #c43f3f;
+}
+
 /* View button */
 .view-button {
     display: inline-flex;

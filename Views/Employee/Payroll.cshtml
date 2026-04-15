@@ -1,11 +1,140 @@
-﻿@{
+﻿@model List<NZFTC_Portal.ViewModels.EmployeePayrollViewModel>
+
+@{
     ViewData["Title"] = "Employee Payroll";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    var payrollRecords = Model ?? new List<NZFTC_Portal.ViewModels.EmployeePayrollViewModel>();
 }
 
 @section Styles {
     <!-- Employee payroll CSS -->
     <link rel="stylesheet" href="~/css/employee-payroll.css" asp-append-version="true" />
+
+    <style>
+        /* Employee payslip modal */
+        .employee-payslip-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 2000;
+        }
+
+            .employee-payslip-modal-overlay.show {
+                display: flex;
+            }
+
+        .employee-payslip-modal-open {
+            overflow: hidden;
+        }
+
+        .employee-payslip-modal {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            background: #f4f4f4;
+            border-radius: 12px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+        }
+
+        .employee-payslip-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            line-height: 1;
+            color: #444444;
+            cursor: pointer;
+        }
+
+        .employee-payslip-modal-header {
+            margin-bottom: 18px;
+        }
+
+            .employee-payslip-modal-header h2 {
+                margin: 0 0 4px;
+                font-size: 1.55rem;
+                font-weight: 500;
+                color: #111111;
+            }
+
+            .employee-payslip-modal-header p {
+                margin: 0;
+                font-size: 0.82rem;
+                color: #a0a0a0;
+            }
+
+        .employee-payslip-modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .employee-payslip-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+            .employee-payslip-form-group label {
+                font-size: 0.92rem;
+                font-weight: 500;
+                color: #111111;
+            }
+
+            .employee-payslip-form-group input {
+                width: 100%;
+                box-sizing: border-box;
+                border: 1px solid #cfcfcf;
+                border-radius: 4px;
+                background: #efefef;
+                padding: 8px 10px;
+                font-size: 0.88rem;
+                color: #444444;
+                outline: none;
+                min-height: 30px;
+            }
+
+        .employee-payslip-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .employee-payslip-close-button {
+            min-width: 66px;
+            height: 24px;
+            padding: 0 12px;
+            border: 1px solid #bdbdbd;
+            border-radius: 6px;
+            background: #efefef;
+            color: #222222;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+            .employee-payslip-close-button:hover {
+                opacity: 0.92;
+            }
+
+        @@media (max-width: 700px) {
+            .employee-payslip-modal
+
+        {
+            max-width: 100%;
+        }
+
+        }
+    </style>
 }
 
 <!-- Payroll page -->
@@ -18,118 +147,191 @@
 
     <!-- Payslip grid -->
     <section class="payslip-grid">
-        <!-- Payslip card -->
-        <article class="payslip-card">
-            <div class="payslip-card-top">
-                <div>
-                    <h2>Payslip</h2>
-                    <p>Pay Date: --/--/----</p>
+        @if (!payrollRecords.Any())
+        {
+            <article class="payslip-card">
+                <div class="payslip-card-top">
+                    <div>
+                        <h2>No Payslips Yet</h2>
+                        <p>There are currently no payroll records available.</p>
+                    </div>
+
+                    <span class="payslip-id-badge">PS---</span>
                 </div>
 
-                <span class="payslip-id-badge">PS---</span>
-            </div>
+                <div class="payslip-details">
+                    <div class="payslip-row">
+                        <span>Basic Salary</span>
+                        <span>--</span>
+                    </div>
 
-            <div class="payslip-details">
-                <div class="payslip-row">
-                    <span>Basic Salary</span>
-                    <span>--</span>
+                    <div class="payslip-row">
+                        <span>Allowances</span>
+                        <span>--</span>
+                    </div>
+
+                    <div class="payslip-row deductions-row">
+                        <span>Deductions</span>
+                        <span>--</span>
+                    </div>
+
+                    <div class="payslip-row net-pay-row">
+                        <span>Net Pay</span>
+                        <span>--</span>
+                    </div>
                 </div>
+            </article>
+        }
+        else
+        {
+            @foreach (var payroll in payrollRecords)
+            {
+                <article class="payslip-card">
+                    <div class="payslip-card-top">
+                        <div>
+                            <h2>Payslip</h2>
+                            <p>Pay Date: @payroll.PayDate.ToString("dd/MM/yyyy")</p>
+                        </div>
 
-                <div class="payslip-row">
-                    <span>Allowances</span>
-                    <span>--</span>
-                </div>
+                        <span class="payslip-id-badge">PS-@payroll.PayrollId.ToString("D3")</span>
+                    </div>
 
-                <div class="payslip-row deductions-row">
-                    <span>Deductions</span>
-                    <span>--</span>
-                </div>
+                    <div class="payslip-details">
+                        <div class="payslip-row">
+                            <span>Basic Salary</span>
+                            <span>@payroll.BaseSalary.ToString("C")</span>
+                        </div>
 
-                <div class="payslip-row net-pay-row">
-                    <span>Net Pay</span>
-                    <span>--</span>
-                </div>
-            </div>
+                        <div class="payslip-row">
+                            <span>Allowances</span>
+                            <span>$0.00</span>
+                        </div>
 
-            <div class="payslip-action">
-                <a href="#" class="view-button">View</a>
-            </div>
-        </article>
+                        <div class="payslip-row deductions-row">
+                            <span>Deductions</span>
+                            <span>@payroll.Deductions.ToString("C")</span>
+                        </div>
 
-        <!-- Payslip card -->
-        <article class="payslip-card">
-            <div class="payslip-card-top">
-                <div>
-                    <h2>Payslip</h2>
-                    <p>Pay Date: --/--/----</p>
-                </div>
+                        <div class="payslip-row net-pay-row">
+                            <span>Net Pay</span>
+                            <span>@payroll.NetPay.ToString("C")</span>
+                        </div>
+                    </div>
 
-                <span class="payslip-id-badge">PS---</span>
-            </div>
-
-            <div class="payslip-details">
-                <div class="payslip-row">
-                    <span>Basic Salary</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row">
-                    <span>Allowances</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row deductions-row">
-                    <span>Deductions</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row net-pay-row">
-                    <span>Net Pay</span>
-                    <span>--</span>
-                </div>
-            </div>
-
-            <div class="payslip-action">
-                <a href="#" class="view-button">View</a>
-            </div>
-        </article>
-
-        <!-- Payslip card -->
-        <article class="payslip-card">
-            <div class="payslip-card-top">
-                <div>
-                    <h2>Payslip</h2>
-                    <p>Pay Date: --/--/----</p>
-                </div>
-
-                <span class="payslip-id-badge">PS---</span>
-            </div>
-
-            <div class="payslip-details">
-                <div class="payslip-row">
-                    <span>Basic Salary</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row">
-                    <span>Allowances</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row deductions-row">
-                    <span>Deductions</span>
-                    <span>--</span>
-                </div>
-
-                <div class="payslip-row net-pay-row">
-                    <span>Net Pay</span>
-                    <span>--</span>
-                </div>
-            </div>
-
-            <div class="payslip-action">
-                <a href="#" class="view-button">View</a>
-            </div>
-        </article>
+                    <div class="payslip-action">
+                        <button type="button"
+                                class="view-button open-payslip-modal"
+                                data-payroll-id="@payroll.PayrollId"
+                                data-pay-date="@payroll.PayDate.ToString("dd/MM/yyyy")"
+                                data-base-salary="@payroll.BaseSalary.ToString("0.00")"
+                                data-tax-rate="@((payroll.TaxRate * 100).ToString("0.##"))%"
+                                data-deductions="@payroll.Deductions.ToString("0.00")"
+                                data-net-pay="@payroll.NetPay.ToString("0.00")">
+                            View
+                        </button>
+                    </div>
+                </article>
+            }
+        }
     </section>
 </section>
+
+<!-- Payslip detail modal -->
+<div class="employee-payslip-modal-overlay" id="employeePayslipModal">
+    <div class="employee-payslip-modal" role="dialog" aria-modal="true" aria-labelledby="employeePayslipModalTitle">
+        <button type="button" class="employee-payslip-modal-close" id="closeEmployeePayslipModal" aria-label="Close payslip details modal">
+            x
+        </button>
+
+        <div class="employee-payslip-modal-header">
+            <h2 id="employeePayslipModalTitle">Payslip Details</h2>
+            <p>View your selected payslip record</p>
+        </div>
+
+        <div class="employee-payslip-modal-form">
+            <div class="employee-payslip-form-group">
+                <label for="viewPayrollId">Payslip ID</label>
+                <input type="text" id="viewPayrollId" readonly />
+            </div>
+
+            <div class="employee-payslip-form-group">
+                <label for="viewPayDate">Pay Date</label>
+                <input type="text" id="viewPayDate" readonly />
+            </div>
+
+            <div class="employee-payslip-form-group">
+                <label for="viewBaseSalary">Basic Salary</label>
+                <input type="text" id="viewBaseSalary" readonly />
+            </div>
+
+            <div class="employee-payslip-form-group">
+                <label for="viewTaxRate">Tax Rate</label>
+                <input type="text" id="viewTaxRate" readonly />
+            </div>
+
+            <div class="employee-payslip-form-group">
+                <label for="viewDeductions">Deductions</label>
+                <input type="text" id="viewDeductions" readonly />
+            </div>
+
+            <div class="employee-payslip-form-group">
+                <label for="viewNetPay">Net Pay</label>
+                <input type="text" id="viewNetPay" readonly />
+            </div>
+
+            <div class="employee-payslip-modal-actions">
+                <button type="button" class="employee-payslip-close-button" id="cancelEmployeePayslipModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const employeePayslipModal = document.getElementById("employeePayslipModal");
+        const closeEmployeePayslipModal = document.getElementById("closeEmployeePayslipModal");
+        const cancelEmployeePayslipModal = document.getElementById("cancelEmployeePayslipModal");
+        const employeePayslipButtons = document.querySelectorAll(".open-payslip-modal");
+
+        function showEmployeePayslipModal() {
+            employeePayslipModal.classList.add("show");
+            document.body.classList.add("employee-payslip-modal-open");
+        }
+
+        function hideEmployeePayslipModal() {
+            employeePayslipModal.classList.remove("show");
+            document.body.classList.remove("employee-payslip-modal-open");
+        }
+
+        function populateEmployeePayslipModal(button) {
+            document.getElementById("viewPayrollId").value = `PS-${button.getAttribute("data-payroll-id").padStart(3, "0")}`;
+            document.getElementById("viewPayDate").value = button.getAttribute("data-pay-date") || "";
+            document.getElementById("viewBaseSalary").value = `$${button.getAttribute("data-base-salary") || "0.00"}`;
+            document.getElementById("viewTaxRate").value = button.getAttribute("data-tax-rate") || "";
+            document.getElementById("viewDeductions").value = `$${button.getAttribute("data-deductions") || "0.00"}`;
+            document.getElementById("viewNetPay").value = `$${button.getAttribute("data-net-pay") || "0.00"}`;
+        }
+
+        employeePayslipButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                populateEmployeePayslipModal(button);
+                showEmployeePayslipModal();
+            });
+        });
+
+        closeEmployeePayslipModal.addEventListener("click", hideEmployeePayslipModal);
+        cancelEmployeePayslipModal.addEventListener("click", hideEmployeePayslipModal);
+
+        employeePayslipModal.addEventListener("click", function (event) {
+            if (event.target === employeePayslipModal) {
+                hideEmployeePayslipModal();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && employeePayslipModal.classList.contains("show")) {
+                hideEmployeePayslipModal();
+            }
+        });
+    </script>
+}

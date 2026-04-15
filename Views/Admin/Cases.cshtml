@@ -1,30 +1,54 @@
-﻿@{
+﻿@model List<NZFTC_Portal.ViewModels.AdminCaseViewModel>
+
+@{
     ViewData["Title"] = "Case Management";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    var caseRecords = Model ?? new List<NZFTC_Portal.ViewModels.AdminCaseViewModel>();
+
+    var hasCaseFeedback =
+        TempData["ErrorMessage"] != null ||
+        TempData["SuccessMessage"] != null;
 }
 
 @section Styles {
     <!-- Admin cases CSS -->
     <link rel="stylesheet" href="~/css/admin-cases.css" asp-append-version="true" />
+
+    <style>
+        .case-form-feedback {
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .case-form-error {
+            background: #fff1f1;
+            border: 1px solid #f1b7b7;
+            color: #9f2f2f;
+        }
+
+        .case-form-success {
+            background: #f2fff4;
+            border: 1px solid #b8e0bf;
+            color: #23663a;
+        }
+    </style>
 }
 
-<!-- Admin cases page -->
 <section class="admin-cases-page">
-    <!-- Page heading -->
     <div class="admin-cases-heading">
         <h1>Cases Management</h1>
         <p>Review and manage employee grievances and resignations</p>
     </div>
 
-    <!-- Cases card -->
     <section class="cases-card">
-        <!-- Card heading -->
         <div class="cases-card-heading">
             <h2>Cases Management</h2>
-            <p>All pending cases in the organization</p>
+            <p>All submitted cases in the organization</p>
         </div>
 
-        <!-- Cases table -->
         <div class="cases-table-wrapper">
             <table class="cases-table">
                 <thead>
@@ -40,20 +64,50 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>--</td>
-                        <td>
-                            <span class="case-status-badge pending-status">Pending</span>
-                        </td>
-                        <td>
-                            <button type="button" class="view-button" id="openCaseModal">View</button>
-                        </td>
-                    </tr>
+                    @if (!caseRecords.Any())
+                    {
+                        <tr>
+                            <td colspan="8">No case records found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var caseItem in caseRecords)
+                        {
+                            var statusClass =
+                            caseItem.Status == "Closed" || caseItem.Status == "Resolved"
+                            ? "approved-status"
+                            : caseItem.Status == "Rejected"
+                            ? "rejected-status"
+                            : "pending-status";
+
+                            <tr>
+                                <td>CS-@caseItem.CaseId.ToString("D3")</td>
+                                <td>@caseItem.EmployeeName</td>
+                                <td>@caseItem.EmployeeEmail</td>
+                                <td>@caseItem.Department</td>
+                                <td>@caseItem.Position</td>
+                                <td>@caseItem.CaseType</td>
+                                <td>
+                                    <span class="case-status-badge @statusClass">@caseItem.Status</span>
+                                </td>
+                                <td>
+                                    <button type="button"
+                                            class="view-button open-case-modal"
+                                            data-case-id="@caseItem.CaseId"
+                                            data-employee="@caseItem.EmployeeName (@caseItem.EmployeeCode)"
+                                            data-submitted-date="@caseItem.SubmittedDate.ToString("dd/MM/yyyy")"
+                                            data-subject="@caseItem.Subject"
+                                            data-description="@caseItem.Description"
+                                            data-status="@caseItem.Status"
+                                            data-admin-note="@caseItem.AdminNote"
+                                            data-reviewed-by="@caseItem.ReviewedByAdmin">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -63,49 +117,73 @@
 <!-- Case details modal -->
 <div class="case-modal-overlay" id="caseModal">
     <div class="case-modal" role="dialog" aria-modal="true" aria-labelledby="caseModalTitle">
-        <!-- Modal close -->
         <button type="button" class="case-modal-close" id="closeCaseModal" aria-label="Close case details modal">
             x
         </button>
 
-        <!-- Modal heading -->
         <div class="case-modal-header">
             <h2 id="caseModalTitle">Case Details</h2>
-            <p>--</p>
+            <p id="caseModalSubheading">Review and update the selected case</p>
         </div>
 
-        <!-- Modal form -->
-        <form class="case-modal-form" id="caseUpdateForm">
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="case-form-feedback case-form-error">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="case-form-feedback case-form-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <form class="case-modal-form" id="caseUpdateForm" method="post" asp-controller="AdminCase" asp-action="UpdateStatus">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" id="caseId" name="CaseId" />
+
             <div class="case-form-group">
                 <label for="caseEmployee">Employee</label>
-                <input type="text" id="caseEmployee" value="--" readonly />
+                <input type="text" id="caseEmployee" readonly />
             </div>
 
             <div class="case-form-group">
                 <label for="caseSubmittedDate">Submitted Date</label>
-                <input type="text" id="caseSubmittedDate" value="--" readonly />
+                <input type="text" id="caseSubmittedDate" readonly />
             </div>
 
             <div class="case-form-group">
                 <label for="caseSubject">Subject</label>
-                <input type="text" id="caseSubject" value="--" readonly />
+                <input type="text" id="caseSubject" readonly />
             </div>
 
             <div class="case-form-group">
                 <label for="caseDescription">Description</label>
-                <textarea id="caseDescription" rows="4" readonly>--</textarea>
+                <textarea id="caseDescription" rows="4" readonly></textarea>
             </div>
 
             <div class="case-form-group">
                 <label for="caseStatusUpdate">Update Case Status</label>
-                <select id="caseStatusUpdate" name="caseStatusUpdate">
-                    <option value="">--</option>
+                <select id="caseStatusUpdate" name="Status">
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Rejected">Rejected</option>
                 </select>
             </div>
 
             <div class="case-form-group">
-                <label for="caseNotes">Update Case</label>
-                <textarea id="caseNotes" name="caseNotes" rows="3" placeholder="--"></textarea>
+                <label for="caseNotes">Admin Note</label>
+                <textarea id="caseNotes" name="AdminNote" rows="3" placeholder="Add a case note"></textarea>
+            </div>
+
+            <div class="case-form-group">
+                <label for="caseReviewedBy">Reviewed By</label>
+                <input type="text" id="caseReviewedBy" readonly />
             </div>
 
             <div class="case-modal-actions">
@@ -119,22 +197,55 @@
 @section Scripts {
     <script>
         const caseModal = document.getElementById("caseModal");
-        const openCaseModal = document.getElementById("openCaseModal");
         const closeCaseModal = document.getElementById("closeCaseModal");
         const cancelCaseModal = document.getElementById("cancelCaseModal");
-        const caseUpdateForm = document.getElementById("caseUpdateForm");
+        const caseButtons = document.querySelectorAll(".open-case-modal");
+
+        const caseId = document.getElementById("caseId");
+        const caseEmployee = document.getElementById("caseEmployee");
+        const caseSubmittedDate = document.getElementById("caseSubmittedDate");
+        const caseSubject = document.getElementById("caseSubject");
+        const caseDescription = document.getElementById("caseDescription");
+        const caseStatusUpdate = document.getElementById("caseStatusUpdate");
+        const caseNotes = document.getElementById("caseNotes");
+        const caseReviewedBy = document.getElementById("caseReviewedBy");
 
         function showCaseModal() {
             caseModal.classList.add("show");
             document.body.classList.add("case-modal-open");
         }
 
+        function clearCaseFeedback() {
+            const feedbackMessages = caseModal.querySelectorAll(".case-form-feedback");
+            feedbackMessages.forEach(function (message) {
+                message.remove();
+            });
+        }
+
         function hideCaseModal() {
             caseModal.classList.remove("show");
             document.body.classList.remove("case-modal-open");
+            clearCaseFeedback();
         }
 
-        openCaseModal.addEventListener("click", showCaseModal);
+        function populateCaseModal(button) {
+            caseId.value = button.getAttribute("data-case-id") || "";
+            caseEmployee.value = button.getAttribute("data-employee") || "";
+            caseSubmittedDate.value = button.getAttribute("data-submitted-date") || "";
+            caseSubject.value = button.getAttribute("data-subject") || "";
+            caseDescription.value = button.getAttribute("data-description") || "";
+            caseStatusUpdate.value = button.getAttribute("data-status") || "Open";
+            caseNotes.value = button.getAttribute("data-admin-note") || "";
+            caseReviewedBy.value = button.getAttribute("data-reviewed-by") || "Not reviewed yet";
+        }
+
+        caseButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                populateCaseModal(button);
+                showCaseModal();
+            });
+        });
+
         closeCaseModal.addEventListener("click", hideCaseModal);
         cancelCaseModal.addEventListener("click", hideCaseModal);
 
@@ -150,11 +261,10 @@
             }
         });
 
-        caseUpdateForm.addEventListener("submit", function (event) {
-            event.preventDefault();
+        const hasCaseFeedback = @hasCaseFeedback.ToString().ToLower();
 
-            // Stub for future case update function
-            console.log("Update Case clicked");
-        });
+        if (hasCaseFeedback) {
+            showCaseModal();
+        }
     </script>
 }

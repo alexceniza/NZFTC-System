@@ -3,11 +3,49 @@
 @{
     ViewData["Title"] = "Employee My Info";
     Layout = "~/Views/Shared/_PortalLayout.cshtml";
+
+    var hasCaseFeedback =
+        TempData["ErrorMessage"] != null ||
+        TempData["SuccessMessage"] != null;
 }
 
 @section Styles {
     <!-- Employee my info CSS -->
     <link rel="stylesheet" href="~/css/employee-myinfo.css" asp-append-version="true" />
+
+    <style>
+        .case-form-feedback {
+            margin: 0 0 16px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .case-form-error {
+            background: #fff1f1;
+            border: 1px solid #f1b7b7;
+            color: #9f2f2f;
+        }
+
+        .case-form-success {
+            background: #f2fff4;
+            border: 1px solid #b8e0bf;
+            color: #23663a;
+        }
+
+        .resolved-status,
+        .closed-status {
+            background-color: #c8efd2;
+            border: 1px solid #64b977;
+            color: #2f9a47;
+        }
+
+        .rejected-status {
+            background-color: #f2cccc;
+            border: 1px solid #d86b6b;
+            color: #c43f3f;
+        }
+    </style>
 }
 
 <!-- My information page -->
@@ -28,6 +66,8 @@
 
         <!-- Profile update form -->
         <form method="post" asp-controller="Employee" asp-action="UpdateProfile" id="profileUpdateForm">
+            @Html.AntiForgeryToken()
+
             <!-- Tracks which editable field is being saved. -->
             <input type="hidden" name="updateField" id="updateField" />
 
@@ -128,11 +168,31 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>--</td>
-                        <td>--</td>
-                        <td><span class="case-status pending-status">Pending</span></td>
-                    </tr>
+                    @if (Model.Cases == null || !Model.Cases.Any())
+                    {
+                        <tr>
+                            <td colspan="3">No cases submitted yet.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var caseItem in Model.Cases)
+                        {
+                            var statusClass =
+                            caseItem.Status == "Closed" ? "closed-status"
+                            : caseItem.Status == "Resolved" ? "resolved-status"
+                            : caseItem.Status == "Rejected" ? "rejected-status"
+                            : "pending-status";
+
+                            <tr>
+                                <td>CS-@caseItem.CaseId.ToString("D3")</td>
+                                <td>@caseItem.CaseType</td>
+                                <td>
+                                    <span class="case-status @statusClass">@caseItem.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -150,28 +210,44 @@
         <!-- Modal heading -->
         <div class="case-modal-header">
             <h2 id="caseModalTitle">Submit a Case</h2>
-            <p>Submit a new leave request for approval</p>
+            <p>Submit a new grievance, complaint, or resignation</p>
         </div>
 
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="case-form-feedback case-form-error">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="case-form-feedback case-form-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
         <!-- Modal form -->
-        <form class="case-modal-form" id="caseRequestForm">
+        <form class="case-modal-form" id="caseRequestForm" method="post" asp-controller="EmployeeCase" asp-action="Create">
+            @Html.AntiForgeryToken()
+
             <div class="case-form-group">
                 <label for="caseType">Case Type</label>
-                <select id="caseType" name="caseType">
-                    <option value="grievance">Grievance</option>
-                    <option value="resignation">Resignation</option>
-                    <option value="complaint">Complaint</option>
+                <select id="caseType" name="CaseType">
+                    <option value="Grievance">Grievance</option>
+                    <option value="Resignation">Resignation</option>
+                    <option value="Complaint">Complaint</option>
                 </select>
             </div>
 
             <div class="case-form-group">
                 <label for="caseSubject">Subject</label>
-                <input type="text" id="caseSubject" name="caseSubject" placeholder="Brief summary of the issue" />
+                <input type="text" id="caseSubject" name="Subject" placeholder="Brief summary of the issue" />
             </div>
 
             <div class="case-form-group">
                 <label for="caseDescription">Description</label>
-                <textarea id="caseDescription" name="caseDescription" rows="5" placeholder="Detailed description of your grievance or resignation reason"></textarea>
+                <textarea id="caseDescription" name="Description" rows="5" placeholder="Detailed description of your grievance or resignation reason"></textarea>
             </div>
 
             <div class="case-modal-actions">
@@ -206,7 +282,6 @@
                 const targetId = button.getAttribute("data-target");
                 const targetInput = document.getElementById(targetId);
 
-                // Switches the chosen field into edit mode.
                 if (targetInput.hasAttribute("readonly")) {
                     resetEditableFields();
                     targetInput.removeAttribute("readonly");
@@ -217,12 +292,10 @@
                     return;
                 }
 
-                // Confirms the save before submitting the chosen field.
                 if (!confirm("Save this change?")) {
                     return;
                 }
 
-                // Saves the chosen field back through the controller stump.
                 updateField.value = targetId;
                 profileUpdateForm.submit();
             });
@@ -232,7 +305,6 @@
         const openCaseModal = document.getElementById("openCaseModal");
         const closeCaseModal = document.getElementById("closeCaseModal");
         const cancelCaseModal = document.getElementById("cancelCaseModal");
-        const caseRequestForm = document.getElementById("caseRequestForm");
 
         // Opens the submit case modal.
         function showCaseModal() {
@@ -240,10 +312,19 @@
             document.body.classList.add("case-modal-open");
         }
 
+        // Clears case feedback after the modal is manually closed.
+        function clearCaseFeedback() {
+            const feedbackMessages = caseModal.querySelectorAll(".case-form-feedback");
+            feedbackMessages.forEach(function (message) {
+                message.remove();
+            });
+        }
+
         // Closes the submit case modal.
         function hideCaseModal() {
             caseModal.classList.remove("show");
             document.body.classList.remove("case-modal-open");
+            clearCaseFeedback();
         }
 
         openCaseModal.addEventListener("click", showCaseModal);
@@ -264,12 +345,10 @@
             }
         });
 
-        // Keeps the submit case button as a frontend stub for now.
-        caseRequestForm.addEventListener("submit", function (event) {
-            event.preventDefault();
+        const hasCaseFeedback = @hasCaseFeedback.ToString().ToLower();
 
-            // Stub for future case submission function
-            console.log("Submit Case clicked");
-        });
+        if (hasCaseFeedback) {
+            showCaseModal();
+        }
     </script>
 }

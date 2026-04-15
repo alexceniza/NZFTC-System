@@ -182,12 +182,30 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 98px;
+    min-width: 88px;
     height: 30px;
-    padding: 0 14px;
+    padding: 0 12px;
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
+}
+
+.pending-status {
+    background-color: #ffe8a3;
+    border: 1px solid #e2b84f;
+    color: #c78600;
+}
+
+.approved-status {
+    background-color: #c8efd2;
+    border: 1px solid #64b977;
+    color: #2f9a47;
+}
+
+.rejected-status {
+    background-color: #f2cccc;
+    border: 1px solid #d86b6b;
+    color: #c43f3f;
 }
 
 .pending-status {
