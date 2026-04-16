@@ -23,7 +23,15 @@
                 @portalRole
             </span>
 
-            <a asp-controller="Employee" asp-action="Support" class="portal-action-button support-button">Support</a>
+            @if (portalRole == "Admin")
+            {
+                <span class="portal-action-button support-button">Support</span>
+            }
+            else
+            {
+                <a asp-controller="Employee" asp-action="Support" class="portal-action-button support-button">Support</a>
+            }
+
             <a asp-controller="Account" asp-action="Logout" class="portal-action-button logout-button">Logout</a>
         </div>
     </div>

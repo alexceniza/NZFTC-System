@@ -77,13 +77,14 @@
     }
 
 .leave-table-wrapper {
+    width: 100%;
     overflow-x: auto;
 }
 
 .leave-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 760px;
+    min-width: 920px;
 }
 
     .leave-table thead th {

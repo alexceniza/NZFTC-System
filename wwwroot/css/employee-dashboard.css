@@ -1,6 +1,6 @@
 ﻿/* Dashboard page */
 .dashboard-page {
-    padding-top: 28px;
+    padding-top: 20px;
     padding-bottom: 8px;
 }
 
@@ -153,10 +153,18 @@
     color: #6d7382;
 }
 
+.deductions-row span:last-child {
+    color: #d62828;
+}
+
 .net-pay-row {
     font-weight: 700;
     color: #111111;
 }
+
+    .net-pay-row span:last-child {
+        color: #10b981;
+    }
 
 /* Card action */
 .card-action {
