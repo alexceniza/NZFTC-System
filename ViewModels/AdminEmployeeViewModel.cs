@@ -10,5 +10,6 @@
         public string Position { get; set; } = string.Empty;
         public string EmploymentStatus { get; set; } = string.Empty;
         public DateOnly JoinDate { get; set; }
+        public string PerformanceEvaluation { get; set; } = string.Empty;
     }
 }

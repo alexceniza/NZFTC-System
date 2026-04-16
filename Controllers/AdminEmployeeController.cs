@@ -45,6 +45,7 @@ namespace NZFTC_Portal.Controllers
 
             var employees = await _context.Employees
                 .Include(e => e.User)
+                .Include(e => e.EmployeeRecord)
                 .OrderBy(e => e.EmployeeCode)
                 .Select(e => new AdminEmployeeViewModel
                 {
@@ -55,7 +56,8 @@ namespace NZFTC_Portal.Controllers
                     Department = e.Department,
                     Position = e.Position,
                     JoinDate = e.JoinDate,
-                    EmploymentStatus = e.EmploymentStatus
+                    EmploymentStatus = e.EmploymentStatus,
+                    PerformanceEvaluation = e.EmployeeRecord != null ? e.EmployeeRecord.PerformanceEvaluation : string.Empty
                 })
                 .ToListAsync();
 

@@ -96,6 +96,7 @@
                             var employeePosition = employee.Position;
                             var employeeJoinDate = employee.JoinDate.ToString("dd/MM/yyyy");
                             var employeeStatus = employee.EmploymentStatus;
+                            var employeePerformanceEvaluation = employee.PerformanceEvaluation;
                             var statusClass = employeeStatus == "Active" ? "active-status" : "leave-status";
 
                             <tr>
@@ -117,7 +118,8 @@
                                             data-employee-department="@employeeDepartment"
                                             data-employee-position="@employeePosition"
                                             data-employee-join-date="@employeeJoinDate"
-                                            data-employee-status="@employeeStatus">
+                                            data-employee-status="@employeeStatus"
+                                            data-employee-performance-evaluation="@employeePerformanceEvaluation">
                                         View
                                     </button>
                                 </td>
@@ -313,6 +315,11 @@
                 <input type="text" id="viewEmployeeJoinDate" readonly />
             </div>
 
+            <div class="employee-form-group">
+                <label for="viewEmployeePerformanceEvaluation">Performance Evaluation</label>
+                <input type="text" id="viewEmployeePerformanceEvaluation" readonly />
+            </div>
+
             <div class="employee-modal-actions">
                 <button type="button" class="employee-cancel-button" id="cancelViewEmployeeModal">Close</button>
             </div>
@@ -451,6 +458,7 @@
             document.getElementById("viewEmployeePosition").value = button.getAttribute("data-employee-position") || "";
             document.getElementById("viewEmployeeJoinDate").value = button.getAttribute("data-employee-join-date") || "";
             document.getElementById("viewEmployeeStatus").value = button.getAttribute("data-employee-status") || "";
+            document.getElementById("viewEmployeePerformanceEvaluation").value = button.getAttribute("data-employee-performance-evaluation") || "";
         }
 
         // Opens the employee details modal for the selected row.
