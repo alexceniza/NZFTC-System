@@ -40,7 +40,7 @@ VALUES
 -- EMPLOYEE RECORDS
 -- =========================
 INSERT INTO employee_records 
-(employee_id, phone_number, address, emergency_contact, performance_evaluation, training_record) 
+(employee_id, phone_number, address, emergency_contact, performance_evaluation, training_records) 
 VALUES
 (1, '0210000001', 'Auckland, NZ', 'Lotte Doe', 'Exceeds expectations in backend development and teamwork.', 'Completed ASP.NET Core MVC training and secure coding workshop.'),
 (2, '0210000002', 'Auckland, NZ', 'River Moe', 'Strong frontend performance with consistent delivery of UI tasks.', 'Completed advanced CSS, JavaScript, and accessibility training.'),

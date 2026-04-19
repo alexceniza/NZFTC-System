@@ -55,7 +55,7 @@ CREATE TABLE employee_records (
     emergency_contact VARCHAR(150),
     employment_history TEXT,
     performance_evaluation TEXT,
-    training_record TEXT,
+    training_records TEXT,
     CONSTRAINT fk_employee_record_employee
         FOREIGN KEY (employee_id) REFERENCES employees(user_id)
         ON DELETE CASCADE
